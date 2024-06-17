@@ -21,7 +21,7 @@
         [NativeDisableContainerSafetyRestriction]
         public NativeArray<BatchGroupDrawRange> DrawRangesData;
 
-        [ReadOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction] public NativeArray<BatchInstanceData> InstanceDataPerBatch;
+        // [ReadOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction] public NativeArray<BatchInstanceData> InstanceDataPerBatch;
 
         [ReadOnly, NativeDisableContainerSafetyRestriction]
         public NativeArray<BatchGroup> BatchGroups;
@@ -41,12 +41,10 @@
                 var visibleCountPerBatch = VisibleCountPerBatch[BatchOffset + i];
                 if (visibleCountPerBatch == 0) // there is no any visible instances for this batch
                     continue;
-
                 visibleCountPerBatchGroup += visibleCountPerBatch;
-                var batchInstanceData = InstanceDataPerBatch[BatchOffset + i];
 
                 validSubBatchCount = math.select(validSubBatchCount, validSubBatchCount + 1,
-                    batchInstanceData.InstanceCount > 0);
+                    visibleCountPerBatch > 0);
             }
 
             ref var drawRangeDataRef = ref UnsafeUtility.ArrayElementAsRef<BatchGroupDrawRange>(DrawRangesData.GetUnsafePtr(), BatchGroupIndex);

@@ -17,7 +17,7 @@
 
         [ReadOnly] public NativeArray<BatchGroupDrawRange> DrawRangeData;
         [ReadOnly] public NativeArray<int> VisibleCountPerBatch;
-        [ReadOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction] public NativeArray<BatchInstanceData> InstanceDataPerBatch;
+        // [ReadOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction] public NativeArray<BatchInstanceData> InstanceDataPerBatch;
 
         [NativeDisableUnsafePtrRestriction] public unsafe BatchCullingOutputDrawCommands* OutputDrawCommands;
 
@@ -36,15 +36,11 @@
             for (var i = 0; i < subBatchCount; i++)
             {
                 var batchIndex = batchStartIndex + i;
+
                 var visibleCountPerBatch = VisibleCountPerBatch[batchIndex];
                 if (visibleCountPerBatch == 0) // there is no any visible instances for this batch
                     continue;
-
-                var batchInstanceData = InstanceDataPerBatch[batchIndex];
-
-                var instanceCount = batchInstanceData.InstanceCount;
-                if (instanceCount == 0) // there is no any visible instances for this level of details
-                    continue;
+                var instanceCount = visibleCountPerBatch; // assume only has one subbatch
 
                 var rendererData = batchGroup.BatchRendererData;
                 var batchDrawCommand = new BatchDrawCommand

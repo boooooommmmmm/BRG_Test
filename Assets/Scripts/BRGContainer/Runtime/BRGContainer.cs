@@ -131,10 +131,6 @@ namespace BRGContainer.Runtime
             m_GraphicsBuffers.Clear();
 
             m_Containers.TryRemove(m_ContainerId, out _);
-            
-            //sven test
-            instanceDataPerBatch.Dispose();
-            visibleCountPerBatch.Dispose();
         }
 
         [AOT.MonoPInvokeCallback(typeof(UploadDelegate))]

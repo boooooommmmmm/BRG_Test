@@ -1,4 +1,6 @@
-﻿namespace BRGContainer.Runtime
+﻿using Unity.Collections;
+
+namespace BRGContainer.Runtime
 {
     using System.Runtime.InteropServices;
     using Unity.Collections.LowLevel.Unsafe;
@@ -6,8 +8,9 @@
     [StructLayout(LayoutKind.Sequential)]
     internal struct BatchInstanceData
     {
-        public int InstanceCount;
+        public int VisibleInstanceCount;
         [NativeDisableUnsafePtrRestriction]
-        public unsafe int* Indices;
+        // public unsafe int* Indices;
+        public unsafe NativeArray<int> Indices; //sven test
     }
 }
