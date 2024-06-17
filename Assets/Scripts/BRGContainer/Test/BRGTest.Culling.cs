@@ -121,7 +121,7 @@ namespace BRGContainer.Test
                 culledObjsCount = culledCount,
                 VisibleIndicesWriter = visibleIndices,
             };
-            cullingHandle = cullingJob.ScheduleByRef(kNumInstances, 64, batchHandle);
+            cullingHandle = cullingJob.Schedule(kNumInstances, 64, batchHandle);
             // cullingJobHandle.Complete();
 
 
@@ -141,7 +141,7 @@ namespace BRGContainer.Test
                 batchMeshID = meshIDArray,
             };
 
-            var allocateCommandJobHandle = allocateCommandJob.ScheduleByRef(1, 1, cullingHandle);
+            var allocateCommandJobHandle = allocateCommandJob.Schedule(1, 1, cullingHandle);
             allocateCommandJobHandle = visibleIndices.Dispose(allocateCommandJobHandle);
             // allocateCommandJobHandle.Complete();
 

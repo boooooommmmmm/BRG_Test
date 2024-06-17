@@ -18,9 +18,9 @@
 
         public void Dispose()
         {
-            UnsafeUtility.FreeTracked(Buffer, AllocatorLabel);
-            UnsafeUtility.FreeTracked(Batches, AllocatorLabel);
-            UnsafeUtility.FreeTracked(InstanceCount, AllocatorLabel);
+            UnsafeUtility.Free(Buffer, AllocatorLabel);
+            UnsafeUtility.Free(Batches, AllocatorLabel);
+            UnsafeUtility.Free(InstanceCount, AllocatorLabel);
         }
     }
 }

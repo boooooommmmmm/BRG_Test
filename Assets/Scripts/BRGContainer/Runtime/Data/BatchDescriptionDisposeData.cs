@@ -19,8 +19,8 @@
         
         public void Dispose()
         {
-            UnsafeUtility.FreeTracked(MetadataValues, AllocatorLabel);
-            UnsafeUtility.FreeTracked(MetadataInfoMap, AllocatorLabel);
+            UnsafeUtility.Free(MetadataValues, AllocatorLabel);
+            UnsafeUtility.Free(MetadataInfoMap, AllocatorLabel);
         }
     }
 }

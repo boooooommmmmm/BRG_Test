@@ -142,7 +142,7 @@ namespace BRGContainer.Runtime
                 };
 
                 offset += windowCount;
-                batchJobHandles[i] = computeDrawCountersJob.ScheduleByRef(cullingHandle);
+                batchJobHandles[i] = computeDrawCountersJob.Schedule(cullingHandle);
                 if (_forceJobFence) batchJobHandles[i].Complete();
             }
 
@@ -156,7 +156,7 @@ namespace BRGContainer.Runtime
                 OutputDrawCommands = drawCommands,
                 Counters = drawCounters
             };
-            var allocateOutputDrawCommandsHandle = allocateOutputDrawCommandsJob.ScheduleByRef(countersHandle);
+            var allocateOutputDrawCommandsHandle = allocateOutputDrawCommandsJob.Schedule(countersHandle);
             allocateOutputDrawCommandsHandle = drawCounters.Dispose(allocateOutputDrawCommandsHandle);
             if (_forceJobFence) allocateOutputDrawCommandsHandle.Complete();
 
@@ -166,7 +166,7 @@ namespace BRGContainer.Runtime
                 DrawRangeData = drawRangeData,
                 OutputDrawCommands = drawCommands
             };
-            var createDrawRangesHandle = createDrawRangesJob.ScheduleParallelByRef(batchGroups.Length, 64, allocateOutputDrawCommandsHandle);
+            var createDrawRangesHandle = createDrawRangesJob.ScheduleParallel(batchGroups.Length, 64, allocateOutputDrawCommandsHandle);
             if (_forceJobFence) createDrawRangesHandle.Complete();
 
             var createDrawCommandsJob = new CreateDrawCommandsJob
@@ -177,7 +177,7 @@ namespace BRGContainer.Runtime
                 // InstanceDataPerBatch = instanceDataPerBatch,
                 OutputDrawCommands = drawCommands
             };
-            var createDrawCommandsHandle = createDrawCommandsJob.ScheduleParallelByRef(batchGroups.Length, 64, createDrawRangesHandle);
+            var createDrawCommandsHandle = createDrawCommandsJob.ScheduleParallel(batchGroups.Length, 64, createDrawRangesHandle);
             if (_forceJobFence) createDrawCommandsHandle.Complete();
 
             var copyVisibilityIndicesToArrayJob = new CopyVisibilityIndicesToArrayJob
@@ -190,7 +190,7 @@ namespace BRGContainer.Runtime
                 OutputDrawCommands = drawCommands
             };
 
-            var resultHandle = copyVisibilityIndicesToArrayJob.ScheduleParallelByRef(batchGroups.Length, 32, createDrawCommandsHandle);
+            var resultHandle = copyVisibilityIndicesToArrayJob.ScheduleParallel(batchGroups.Length, 32, createDrawCommandsHandle);
             if (_forceJobFence) resultHandle.Complete();
 
             resultHandle = JobHandle.CombineDependencies(drawRangeData.Dispose(resultHandle), batchGroups.Dispose(resultHandle));

@@ -16,7 +16,7 @@
     [StructLayout(LayoutKind.Sequential)]
     [DebuggerTypeProxy(typeof(BatchDescriptionDebugView))]
     [DebuggerDisplay("MaxInstancePerWindow = {MaxInstancePerWindow}, WindowCount = {WindowCount}, Length = {Length}, IsCreated = {IsCreated}")]
-    public struct BatchDescription : IEnumerable<MetadataValue>, INativeDisposable
+    public struct BatchDescription : IEnumerable<MetadataValue>
     {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
         private static int m_StaticSafetyId;
@@ -70,13 +70,13 @@
             AtomicSafetyHandle.SetStaticSafetyId(ref m_Safety, m_StaticSafetyId);
 #endif
             
-            m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.MallocTracked(
+            m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(
                 UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(),
-                m_Allocator, 0);
-            m_MetadataInfoMap = (UnsafeHashMap<int, MetadataInfo>*) UnsafeUtility.MallocTracked(
+                m_Allocator);
+            m_MetadataInfoMap = (UnsafeHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
                 UnsafeUtility.SizeOf<UnsafeHashMap<int, MetadataInfo>>(),
                 UnsafeUtility.AlignOf<UnsafeHashMap<int, MetadataInfo>>(),
-                m_Allocator, 0);
+                m_Allocator);
             
             *m_MetadataValues = new UnsafeList<MetadataValue>(Length, m_Allocator);
             (*m_MetadataValues).CopyFrom(*batchDescription.m_MetadataValues);
@@ -107,13 +107,13 @@
             AtomicSafetyHandle.SetStaticSafetyId(ref m_Safety, m_StaticSafetyId);
 #endif
 
-            m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.MallocTracked(
+            m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(
                 UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(),
-                allocator, 0);
-            m_MetadataInfoMap = (UnsafeHashMap<int, MetadataInfo>*) UnsafeUtility.MallocTracked(
+                allocator);
+            m_MetadataInfoMap = (UnsafeHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
                 UnsafeUtility.SizeOf<UnsafeHashMap<int, MetadataInfo>>(),
                 UnsafeUtility.AlignOf<UnsafeHashMap<int, MetadataInfo>>(),
-                allocator, 0);
+                allocator);
             
             *m_MetadataValues = new UnsafeList<MetadataValue>(Length, allocator);
             *m_MetadataInfoMap = new UnsafeHashMap<int, MetadataInfo>(Length, allocator);
@@ -155,13 +155,13 @@
             AtomicSafetyHandle.SetStaticSafetyId(ref m_Safety, m_StaticSafetyId);
 #endif
 
-            m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.MallocTracked(
+            m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(
                 UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(),
-                allocator, 0);
-            m_MetadataInfoMap = (UnsafeHashMap<int, MetadataInfo>*) UnsafeUtility.MallocTracked(
+                allocator);
+            m_MetadataInfoMap = (UnsafeHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
                 UnsafeUtility.SizeOf<UnsafeHashMap<int, MetadataInfo>>(),
                 UnsafeUtility.AlignOf<UnsafeHashMap<int, MetadataInfo>>(),
-                allocator, 0);
+                allocator);
             
             *m_MetadataValues = new UnsafeList<MetadataValue>(Length, allocator);
             *m_MetadataInfoMap = new UnsafeHashMap<int, MetadataInfo>(Length, allocator);
@@ -264,8 +264,8 @@
                 (*m_MetadataValues).Dispose();
                 (*m_MetadataInfoMap).Dispose();
                 
-                UnsafeUtility.FreeTracked(m_MetadataValues, m_Allocator);
-                UnsafeUtility.FreeTracked(m_MetadataInfoMap, m_Allocator);
+                UnsafeUtility.Free(m_MetadataValues, m_Allocator);
+                UnsafeUtility.Free(m_MetadataInfoMap, m_Allocator);
 
                 m_Allocator = Allocator.Invalid;
             }

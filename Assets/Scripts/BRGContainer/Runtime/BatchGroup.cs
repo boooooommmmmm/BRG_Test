@@ -58,20 +58,20 @@
 
             m_Allocator = allocator;
 
-            m_DataBuffer = (float4*)UnsafeUtility.MallocTracked(UnsafeUtility.SizeOf<float4>() * m_BufferLength,
+            m_DataBuffer = (float4*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<float4>() * m_BufferLength,
                 UnsafeUtility.AlignOf<float4>(),
-                allocator, 0);
-            m_Batches = (BatchID*)UnsafeUtility.MallocTracked(UnsafeUtility.SizeOf<BatchID>() * m_BufferLength,
-                UnsafeUtility.AlignOf<BatchID>(), allocator, 0);
+                allocator);
+            m_Batches = (BatchID*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<BatchID>() * m_BufferLength,
+                UnsafeUtility.AlignOf<BatchID>(), allocator);
 
-            m_InstanceCount = (int*)UnsafeUtility.MallocTracked(UnsafeUtility.SizeOf<int>(),
-                UnsafeUtility.AlignOf<int>(), allocator, 0);
+            m_InstanceCount = (int*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<int>(),
+                UnsafeUtility.AlignOf<int>(), allocator);
             UnsafeUtility.MemClear(m_InstanceCount, UnsafeUtility.SizeOf<int>());
 
             //sven test
             // o2wArray = (NativeArray<PackedMatrix>*)(new NativeArray<PackedMatrix>(m_BufferLength, allocator)).GetUnsafePtr();
-            o2wArray = (PackedMatrix*)UnsafeUtility.MallocTracked(UnsafeUtility.SizeOf<PackedMatrix>() * m_BufferLength,
-                UnsafeUtility.AlignOf<PackedMatrix>(), allocator, 0);
+            o2wArray = (PackedMatrix*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<PackedMatrix>() * m_BufferLength,
+                UnsafeUtility.AlignOf<PackedMatrix>(), allocator);
             UnsafeUtility.MemClear(o2wArray, UnsafeUtility.SizeOf<PackedMatrix>());
         }
 
@@ -183,15 +183,15 @@
 
             if (m_Allocator > Allocator.None)
             {
-                UnsafeUtility.FreeTracked(m_DataBuffer, m_Allocator);
-                UnsafeUtility.FreeTracked(m_Batches, m_Allocator);
-                UnsafeUtility.FreeTracked(m_InstanceCount, m_Allocator);
+                UnsafeUtility.Free(m_DataBuffer, m_Allocator);
+                UnsafeUtility.Free(m_Batches, m_Allocator);
+                UnsafeUtility.Free(m_InstanceCount, m_Allocator);
 
                 m_BatchDescription.Dispose();
                 BatchRendererData.Dispose();
                 
                 //sven test
-                UnsafeUtility.FreeTracked(o2wArray, m_Allocator);
+                UnsafeUtility.Free(o2wArray, m_Allocator);
 
                 m_Allocator = Allocator.Invalid;
             }
