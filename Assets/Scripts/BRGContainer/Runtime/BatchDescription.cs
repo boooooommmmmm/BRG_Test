@@ -16,7 +16,7 @@
     [StructLayout(LayoutKind.Sequential)]
     [DebuggerTypeProxy(typeof(BatchDescriptionDebugView))]
     [DebuggerDisplay("MaxInstancePerWindow = {MaxInstancePerWindow}, WindowCount = {WindowCount}, Length = {Length}, IsCreated = {IsCreated}")]
-    public struct BatchDescription : IEnumerable<MetadataValue>
+    public struct BatchDescription : IEnumerable<MetadataValue>, INativeDisposable
     {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
         private static int m_StaticSafetyId;
