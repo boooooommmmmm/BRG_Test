@@ -3,6 +3,10 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEditor.ShaderGraph;
 using UnityEditor.ShaderGraph.Legacy;
+using UnityEditor.UIElements;
+#if UNITY_2022_1_OR_NEWER
+using UnityEngine.UIElements;
+#endif
 
 
 namespace UnityEditor.Rendering.Universal.ShaderGraph
@@ -66,7 +70,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
 
         public override void GetPropertiesGUI(ref TargetPropertyGUIContext context, Action onChange, Action<String> registerUndo)
         {
-            context.AddProperty("Blending Mode", new UnityEngine.UIElements.EnumField(AlphaMode.Alpha) { value = target.alphaMode }, (evt) =>
+            context.AddProperty("Blending Mode", new EnumField(AlphaMode.Alpha) { value = target.alphaMode }, (evt) =>
             {
                 if (Equals(target.alphaMode, evt.newValue))
                     return;

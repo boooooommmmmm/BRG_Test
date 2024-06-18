@@ -198,7 +198,8 @@ namespace BRGContainer.Test
 
             foreach (var _targetPoints in m_TargetPoints)
             {
-                _targetPoints.Dispose();
+                if (_targetPoints.Length != 0)
+                    _targetPoints.Dispose();
             }
 
             m_BrgContainer?.Dispose();

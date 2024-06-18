@@ -30,8 +30,11 @@
         [NativeDisableUnsafePtrRestriction] internal unsafe int* m_InstanceCount;
 
         //sven test
+        [NativeDisableUnsafePtrRestriction]
         private unsafe PackedMatrix* m_O2WArray;
+        [NativeDisableUnsafePtrRestriction]
         private unsafe int* m_State;
+        [NativeDisableUnsafePtrRestriction]
         private unsafe int* m_Visibility; //native array for filling visibility index, count = length * viewCount
 
         public readonly int Length;

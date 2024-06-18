@@ -3,7 +3,11 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.RendererUtils;
 
 // Typedefs for the in-engine RendererList API (to avoid conflicts with the experimental version)
+#if UNITY_2022_1_OR_NEWER
 using CoreRendererList = UnityEngine.Rendering.RendererList;
+#else
+using CoreRendererList = UnityEngine.Rendering.RendererUtils.RendererList;
+#endif
 using CoreRendererListDesc = UnityEngine.Rendering.RendererUtils.RendererListDesc;
 
 namespace UnityEngine.Experimental.Rendering.RenderGraphModule

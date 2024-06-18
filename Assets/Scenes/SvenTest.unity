@@ -233,11 +233,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_BRGData:
   - mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
-    material: {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
+    material: {fileID: 2100000, guid: a0eaca437abc81b4f906f92de0eb6cc1, type: 2}
   - mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
-    material: {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
+    material: {fileID: 2100000, guid: a0eaca437abc81b4f906f92de0eb6cc1, type: 2}
   - mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
-    material: {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
+    material: {fileID: 2100000, guid: a0eaca437abc81b4f906f92de0eb6cc1, type: 2}
   MainCamera: {fileID: 1511458218}
   TotalBatchCount: 500
   kNumInstances: 20
@@ -280,11 +280,11 @@ MonoScript:
   serializedVersion: 7
   m_DefaultReferences: {}
   m_Icon: {fileID: 0}
-  m_Type: 0
+  m_Type: 2
   m_ExecutionOrder: 0
   m_ClassName: UniversalAdditionalCameraData
   m_Namespace: UnityEngine.Rendering.Universal
-  m_AssemblyName: Unity.RenderPipelines.Universal.Runtime
+  m_AssemblyName: 
 --- !u!1 &721514307
 GameObject:
   m_ObjectHideFlags: 0
@@ -410,7 +410,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 721514307}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 983869235}
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Version: 1
@@ -421,21 +421,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
---- !u!115 &983869235
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: UniversalAdditionalLightData
-  m_Namespace: UnityEngine.Rendering.Universal
-  m_AssemblyName: Unity.RenderPipelines.Universal.Runtime
 --- !u!1 &1511458216
 GameObject:
   m_ObjectHideFlags: 0
@@ -575,27 +560,6 @@ MonoBehaviour:
   m_Script: {fileID: 453668064}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_RenderShadows: 1
-  m_RequiresDepthTextureOption: 2
-  m_RequiresOpaqueTextureOption: 2
-  m_CameraType: 0
-  m_Cameras: []
-  m_RendererIndex: -1
-  m_VolumeLayerMask:
-    serializedVersion: 2
-    m_Bits: 1
-  m_VolumeTrigger: {fileID: 0}
-  m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
-  m_Antialiasing: 0
-  m_AntialiasingQuality: 2
-  m_StopNaN: 0
-  m_Dithering: 0
-  m_ClearDepth: 1
-  m_AllowXRRendering: 1
-  m_RequiresDepthTexture: 0
-  m_RequiresColorTexture: 0
-  m_Version: 2
 --- !u!1 &1545847476
 GameObject:
   m_ObjectHideFlags: 0
@@ -713,7 +677,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 2, y: 2, z: 2}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!23 &1566393166
 MeshRenderer:
@@ -735,7 +699,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -813,7 +777,7 @@ MonoBehaviour:
   - mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     material: {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
   - mesh: {fileID: 4711208715938537054, guid: 0380c8751014446c2b1751fd9b659040, type: 3}
-    material: {fileID: 2100000, guid: df6219926368041ac926da7e3dbc92c7, type: 2}
+    material: {fileID: 0}
   mainCamera: {fileID: 1511458218}
   text: {fileID: 52322127}
   workerCountText: {fileID: 1545847478}
@@ -1009,10 +973,10 @@ RectTransform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1511458219}
-  - {fileID: 721514309}
   - {fileID: 1650649592}
   - {fileID: 204826290}
   - {fileID: 2068658269}
-  - {fileID: 1887577062}
   - {fileID: 1566393168}
+  - {fileID: 721514309}
+  - {fileID: 1887577062}
+  - {fileID: 1511458219}

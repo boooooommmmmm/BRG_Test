@@ -1,3 +1,7 @@
+//#define TEMP_TEST_MODE
+
+#if TEMP_TEST_MODE
+#else
 using System;
 using System.Collections.Generic;
 using BRGContainer.Runtime;
@@ -247,3 +251,4 @@ namespace BRGContainer.Test
         }
     }
 }
+#endif

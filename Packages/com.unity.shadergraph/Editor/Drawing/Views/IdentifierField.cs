@@ -1,4 +1,5 @@
 using System;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -9,12 +10,12 @@ namespace UnityEditor.ShaderGraph.Drawing
         (variable name, function name, ...) this means
         no spaces, no funny characters, never starts with a number, ...
     */
-    public class IdentifierField : UnityEngine.UIElements.TextValueField<string>
+    public class IdentifierField : TextValueField<string>
     {
         IdentifierInput tsInput => (IdentifierInput)textInputBase;
 
         public new class UxmlFactory : UxmlFactory<IdentifierField, UxmlTraits> { }
-        public new class UxmlTraits : UnityEngine.UIElements.TextValueFieldTraits<string, UxmlStringAttributeDescription> { }
+        public new class UxmlTraits : TextValueFieldTraits<string, UxmlStringAttributeDescription> { }
 
         protected override string ValueToString(string v)
         {
@@ -52,7 +53,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             tsInput.AddToClassList(inputUssClassName);
         }
 
-        public override void ApplyInputDeviceDelta(Vector3 delta, UnityEngine.UIElements.DeltaSpeed speed, string startValue)
+        public override void ApplyInputDeviceDelta(Vector3 delta, DeltaSpeed speed, string startValue)
         {
             tsInput.ApplyInputDeviceDelta(delta, speed, startValue);
         }
@@ -71,7 +72,7 @@ namespace UnityEditor.ShaderGraph.Drawing
                 get { return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"; }
             }
 
-            public override void ApplyInputDeviceDelta(Vector3 delta, UnityEngine.UIElements.DeltaSpeed speed, string startValue)
+            public override void ApplyInputDeviceDelta(Vector3 delta, DeltaSpeed speed, string startValue)
             {
             }
 

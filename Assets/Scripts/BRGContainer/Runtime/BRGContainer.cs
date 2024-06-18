@@ -1,4 +1,6 @@
-﻿using System;
+﻿//#define TEMP_TEST_MODE
+
+using System;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -17,6 +19,8 @@ using UnityEngine.Rendering;
 #if ENABLE_IL2CPP
 using Il2Cpp;
 #endif
+
+
 
 namespace BRGContainer.Runtime
 {
@@ -56,7 +60,12 @@ namespace BRGContainer.Runtime
         {
             m_ContainerId = new ContainerID(Interlocked.Increment(ref m_ContainerGlobalID));
 
+#if TEMP_TEST_MODE
+            m_BatchRendererGroup = new BatchRendererGroup(TempCullingCallback);
+#else
             m_BatchRendererGroup = new BatchRendererGroup(CullingCallback, IntPtr.Zero);
+#endif
+
             m_GraphicsBuffers = new Dictionary<BatchID, GraphicsBuffer>();
             m_Groups = new NativeParallelHashMap<BatchID, BatchGroup>(1, Allocator.Persistent);
 
@@ -65,7 +74,10 @@ namespace BRGContainer.Runtime
 
         public BRGContainer(Bounds bounds) : this()
         {
+            #if TEMP_TEST_MODE
+            #else
             m_BatchRendererGroup.SetGlobalBounds(bounds);
+            #endif
         }
 
         public void SetCamera(Camera camera)
@@ -76,14 +88,18 @@ namespace BRGContainer.Runtime
 
         public void SetGlobalBounds(Bounds bounds)
         {
-            m_BatchRendererGroup.SetGlobalBounds(bounds);
+            // m_BatchRendererGroup.SetGlobalBounds(bounds);
         }
 
         public unsafe BatchHandle AddBatch(ref BatchDescription batchDescription, [NotNull] Mesh mesh, ushort subMeshIndex, [NotNull] Material material, in RendererDescription rendererDescription)
         {
             GraphicsBuffer graphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, batchDescription.TotalBufferSize);
             BatchRendererData rendererData = CreateRendererData(rendererDescription, mesh, subMeshIndex, material);
+            #if TEMP_TEST_MODE
+            BatchGroup batchGroup = CreateBatchGroup(ref batchDescription, ref rendererData, new GraphicsBufferHandle(), batchDescription.m_Allocator);
+            #else
             BatchGroup batchGroup = CreateBatchGroup(ref batchDescription, ref rendererData, graphicsBuffer.bufferHandle, batchDescription.m_Allocator);
+            #endif
 
             var batchId = batchGroup[0];
             m_GraphicsBuffers.Add(batchId, graphicsBuffer);

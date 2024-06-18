@@ -1,4 +1,9 @@
-﻿using System;
+﻿//#define TEMP_TEST_MODE
+
+#if TEMP_TEST_MODE
+#else
+
+using System;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
@@ -151,3 +156,5 @@ namespace BRGContainer.Test
         }
     }
 }
+
+#endif

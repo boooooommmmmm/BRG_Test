@@ -1,4 +1,6 @@
-﻿namespace BRGContainer.Runtime
+﻿//#define TEMP_TEST_MODE
+
+namespace BRGContainer.Runtime
 {
     using System;
     using System.Collections;
@@ -28,7 +30,11 @@
         private static readonly int m_WorldToObjectPropertyName = Shader.PropertyToID("unity_WorldToObject");
         
         private const uint PerInstanceBit = 0x80000000;
+        #if TEMP_TEST_MODE
+        public static readonly bool IsUBO = false;
+        #else
         public static readonly bool IsUBO = BatchRendererGroup.BufferTarget == BatchBufferTarget.ConstantBuffer;
+        #endif
 
         [NativeDisableUnsafePtrRestriction]
         internal unsafe UnsafeList<MetadataValue>* m_MetadataValues;
@@ -122,7 +128,11 @@
 
             if (IsUBO)
             {
+                #if TEMP_TEST_MODE
+                AlignedWindowSize = 1;
+                #else
                 AlignedWindowSize = BatchRendererGroup.GetConstantBufferMaxWindowSize();
+                #endif
                 MaxInstancePerWindow = AlignedWindowSize / SizePerInstance;
                 WindowCount = (maxInstanceCount + MaxInstancePerWindow - 1) / MaxInstancePerWindow;
                 WindowSize = (uint) AlignedWindowSize;
@@ -175,7 +185,11 @@
 
             if (IsUBO)
             {
+#if TEMP_TEST_MODE
+                AlignedWindowSize = 1;
+#else
                 AlignedWindowSize = BatchRendererGroup.GetConstantBufferMaxWindowSize();
+#endif
                 MaxInstancePerWindow = AlignedWindowSize / SizePerInstance;
                 WindowCount = (maxInstanceCount + MaxInstancePerWindow - 1) / MaxInstancePerWindow;
                 WindowSize = (uint) AlignedWindowSize;
