@@ -8,6 +8,12 @@ namespace BRGContainer.Runtime
         
     }
     
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    public class BRGMethodThreadUnsafeAttribute : Attribute
+    {
+        
+    }
+    
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public class BRGClassThreadSafeAttribute : Attribute
     {

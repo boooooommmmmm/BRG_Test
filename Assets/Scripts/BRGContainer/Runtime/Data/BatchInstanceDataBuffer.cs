@@ -17,7 +17,7 @@
         [NativeDisableParallelForRestriction]
         private readonly NativeArray<float4> m_Buffer;
         [NativeDisableUnsafePtrRestriction]
-        private readonly unsafe UnsafeHashMap<int, MetadataInfo>* m_MetadataInfo;
+        private readonly unsafe UnsafeParallelHashMap<int, MetadataInfo>* m_MetadataInfo;
         [NativeDisableUnsafePtrRestriction]
         private readonly unsafe UnsafeList<MetadataValue>* m_MetadataValues;
         [NativeDisableUnsafePtrRestriction]
@@ -35,7 +35,7 @@
             set => SetInstanceCount(value);
         }
 
-        internal unsafe BatchInstanceDataBuffer(NativeArray<float4> buffer, UnsafeHashMap<int, MetadataInfo>* metadataInfo, UnsafeList<MetadataValue>* metadataValues,
+        internal unsafe BatchInstanceDataBuffer(NativeArray<float4> buffer, UnsafeParallelHashMap<int, MetadataInfo>* metadataInfo, UnsafeList<MetadataValue>* metadataValues,
             int* instanceCountReference, int maxInstanceCount, int maxInstancePerWindow, int windowSizeInFloat4)
         {
             m_Buffer = buffer;

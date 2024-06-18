@@ -20,6 +20,9 @@
     [DebuggerDisplay("Count = {Length}, InstanceCount = {InstanceCount}")]
     public struct BatchGroup : INativeDisposable, IEnumerable<BatchID>
     {
+        //static
+        private static int s_SizeOfInt = UnsafeUtility.SizeOf<int>();
+        
         internal BatchDescription m_BatchDescription;
 
         [NativeDisableUnsafePtrRestriction] private unsafe float4* m_DataBuffer;
@@ -27,8 +30,9 @@
         [NativeDisableUnsafePtrRestriction] internal unsafe int* m_InstanceCount;
 
         //sven test
-        // private unsafe NativeArray<PackedMatrix>* o2wArray;
-        private unsafe PackedMatrix* o2wArray;
+        private unsafe PackedMatrix* m_O2WArray;
+        private unsafe int* m_State;
+        private unsafe int* m_Visibility; //native array for filling visibility index, count = length * viewCount
 
         public readonly int Length;
         private readonly int m_BufferLength;
@@ -69,28 +73,42 @@
             UnsafeUtility.MemClear(m_InstanceCount, UnsafeUtility.SizeOf<int>());
 
             //sven test
-            // o2wArray = (NativeArray<PackedMatrix>*)(new NativeArray<PackedMatrix>(m_BufferLength, allocator)).GetUnsafePtr();
-            o2wArray = (PackedMatrix*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<PackedMatrix>() * m_BufferLength,
-                UnsafeUtility.AlignOf<PackedMatrix>(), allocator);
-            UnsafeUtility.MemClear(o2wArray, UnsafeUtility.SizeOf<PackedMatrix>());
+            m_O2WArray = (PackedMatrix*)new NativeArray<PackedMatrix>(m_BufferLength, allocator).GetUnsafePtr();
+            m_Visibility = (int*)new NativeArray<int>(m_BufferLength, allocator).GetUnsafePtr();
+            m_State = (int*)new NativeArray<int>(m_BufferLength * 2, allocator).GetUnsafePtr();
         }
 
         //sven test
         public unsafe NativeArray<PackedMatrix> GetO2WArray()
         {
-            var a = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<PackedMatrix>(o2wArray, m_BufferLength, m_Allocator);
+            var a = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<PackedMatrix>(m_O2WArray, m_BufferLength, m_Allocator);
             return a;
         }
         
         public unsafe PackedMatrix* GetO2WArrayPtr()
         {
-            return o2wArray;
+            return m_O2WArray;
         }
         
+        [BRGMethodThreadUnsafe]
         public unsafe void SetO2WMatrix(int index, PackedMatrix matrix)
         {
-            // (*o2wArray)[index] = matrix;
-            UnsafeUtility.WriteArrayElement(o2wArray, index, matrix);
+            UnsafeUtility.WriteArrayElement(m_O2WArray, index, matrix);
+        }
+
+        public unsafe int* GetStatePrt()
+        {
+            return m_State;
+        }
+
+        public unsafe void SetState(int index, int state)
+        {
+            UnsafeUtility.WriteArrayElement(m_O2WArray, index, state);
+        }
+
+        public unsafe int* GetVisibleBufferPtr(int view)
+        {
+            return m_Visibility + view * m_BufferLength * s_SizeOfInt;
         }
 
         public readonly unsafe NativeArray<float4> GetNativeBuffer()
@@ -176,7 +194,7 @@
             if ((IntPtr)m_InstanceCount == IntPtr.Zero)
                 throw new InvalidOperationException($"The {nameof(BatchGroup)} is already disposed");
             //sven test
-            if ((IntPtr)o2wArray == IntPtr.Zero)
+            if ((IntPtr)m_O2WArray == IntPtr.Zero)
                 throw new InvalidOperationException($"The {nameof(BatchGroup)} is already disposed");
             
 #endif
@@ -191,7 +209,9 @@
                 BatchRendererData.Dispose();
                 
                 //sven test
-                UnsafeUtility.Free(o2wArray, m_Allocator);
+                UnsafeUtility.Free(m_O2WArray, m_Allocator);
+                UnsafeUtility.Free(m_Visibility, m_Allocator);
+                UnsafeUtility.Free(m_State, m_Allocator);
 
                 m_Allocator = Allocator.Invalid;
             }
@@ -199,7 +219,7 @@
             m_DataBuffer = null;
             m_Batches = null;
             m_InstanceCount = null;
-            o2wArray = null;//sven test
+            m_O2WArray = null;//sven test
         }
 
         public unsafe JobHandle Dispose(JobHandle inputDeps)

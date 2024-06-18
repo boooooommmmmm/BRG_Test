@@ -33,7 +33,7 @@
         [NativeDisableUnsafePtrRestriction]
         internal unsafe UnsafeList<MetadataValue>* m_MetadataValues;
         [NativeDisableUnsafePtrRestriction]
-        internal unsafe UnsafeHashMap<int, MetadataInfo>* m_MetadataInfoMap;
+        internal unsafe UnsafeParallelHashMap<int, MetadataInfo>* m_MetadataInfoMap;
         
         internal Allocator m_Allocator;
 
@@ -73,14 +73,14 @@
             m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(
                 UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(),
                 m_Allocator);
-            m_MetadataInfoMap = (UnsafeHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
-                UnsafeUtility.SizeOf<UnsafeHashMap<int, MetadataInfo>>(),
-                UnsafeUtility.AlignOf<UnsafeHashMap<int, MetadataInfo>>(),
+            m_MetadataInfoMap = (UnsafeParallelHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
+                UnsafeUtility.SizeOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
+                UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
                 m_Allocator);
             
             *m_MetadataValues = new UnsafeList<MetadataValue>(Length, m_Allocator);
             (*m_MetadataValues).CopyFrom(*batchDescription.m_MetadataValues);
-            *m_MetadataInfoMap = new UnsafeHashMap<int, MetadataInfo>(Length, m_Allocator);
+            *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(Length, m_Allocator);
             foreach (var pair in *batchDescription.m_MetadataInfoMap)
             {
                 (*m_MetadataInfoMap).Add(pair.Key, pair.Value);
@@ -110,13 +110,13 @@
             m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(
                 UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(),
                 allocator);
-            m_MetadataInfoMap = (UnsafeHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
-                UnsafeUtility.SizeOf<UnsafeHashMap<int, MetadataInfo>>(),
-                UnsafeUtility.AlignOf<UnsafeHashMap<int, MetadataInfo>>(),
+            m_MetadataInfoMap = (UnsafeParallelHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
+                UnsafeUtility.SizeOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
+                UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
                 allocator);
             
             *m_MetadataValues = new UnsafeList<MetadataValue>(Length, allocator);
-            *m_MetadataInfoMap = new UnsafeHashMap<int, MetadataInfo>(Length, allocator);
+            *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(Length, allocator);
 
             SizePerInstance = UnsafeUtility.SizeOf<PackedMatrix>() * 2;
 
@@ -158,13 +158,13 @@
             m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(
                 UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(),
                 allocator);
-            m_MetadataInfoMap = (UnsafeHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
-                UnsafeUtility.SizeOf<UnsafeHashMap<int, MetadataInfo>>(),
-                UnsafeUtility.AlignOf<UnsafeHashMap<int, MetadataInfo>>(),
+            m_MetadataInfoMap = (UnsafeParallelHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
+                UnsafeUtility.SizeOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
+                UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
                 allocator);
             
             *m_MetadataValues = new UnsafeList<MetadataValue>(Length, allocator);
-            *m_MetadataInfoMap = new UnsafeHashMap<int, MetadataInfo>(Length, allocator);
+            *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(Length, allocator);
 
             SizePerInstance = UnsafeUtility.SizeOf<PackedMatrix>() * 2; //o2w, w2o
             for (var i = 0; i < materialProperties.Length; i++)

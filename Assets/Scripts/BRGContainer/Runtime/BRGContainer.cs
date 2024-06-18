@@ -31,7 +31,7 @@ namespace BRGContainer.Runtime
         private readonly BatchRendererGroup m_BatchRendererGroup;
         private readonly ContainerID m_ContainerId;
         private readonly Dictionary<BatchID, GraphicsBuffer> m_GraphicsBuffers;
-        private readonly NativeHashMap<BatchID, BatchGroup> m_Groups;
+        private readonly NativeParallelHashMap<BatchID, BatchGroup> m_Groups;
 
         private Camera m_Camera;
 
@@ -58,7 +58,7 @@ namespace BRGContainer.Runtime
 
             m_BatchRendererGroup = new BatchRendererGroup(CullingCallback, IntPtr.Zero);
             m_GraphicsBuffers = new Dictionary<BatchID, GraphicsBuffer>();
-            m_Groups = new NativeHashMap<BatchID, BatchGroup>(1, Allocator.Persistent);
+            m_Groups = new NativeParallelHashMap<BatchID, BatchGroup>(1, Allocator.Persistent);
 
             m_Containers.TryAdd(m_ContainerId, this);
         }

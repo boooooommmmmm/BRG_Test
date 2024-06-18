@@ -22,14 +22,11 @@ namespace BRGContainer.Runtime
 
         private const bool _forceJobFence = false; //default : false
         private const bool _useMainCameraCulling = true; //default : true
-
-        //Sven test
-        [NativeDisableContainerSafetyRestriction]
-        private int _initedInstanceDataCount = 0;
+        
         private unsafe JobHandle CullingParallel(BatchRendererGroup rendererGroup, BatchCullingContext cullingContext,
             BatchCullingOutput cullingOutput, IntPtr userContext)
         {
-            
+            Debug.LogError($"slice: {cullingContext.viewID.GetSliceIndex()} Hash: {cullingContext.viewID.GetHashCode()}; instance: {cullingContext.viewID.GetInstanceID()}");
             cullingOutput.drawCommands[0] = new BatchCullingOutputDrawCommands();
             var batchGroups = m_Groups.GetValueArray(Allocator.TempJob);
 
@@ -46,23 +43,9 @@ namespace BRGContainer.Runtime
                 cullingPlanes.Dispose();
                 cullingPlanes = cullingContext.cullingPlanes;
             }
-
-            // var instanceDataPerBatch = new NativeArray<BatchInstanceData>(batchCount, Allocator.TempJob);
             
             var visibleInstanceCount = new NativeArray<int>(batchGroups.Length, Allocator.TempJob); //assume each batch only has one window 
             var visibleIndices = new NativeArray<int>(batchGroups.Length * 20 * 1, Allocator.TempJob); //assume each batch only has one window
-            
-            //Sven test
-            // while (_initedInstanceDataCount < batchGroups.Length)
-            // {
-            //     BatchInstanceData instanceIndices = default;
-            //     // instanceIndices.Indices = (int*)UnsafeUtility.MallocTracked(UnsafeUtility.SizeOf<int>() * 20,
-            //         // UnsafeUtility.AlignOf<int>(), Allocator.Persistent, 0);
-            //     instanceIndices.VisibleInstanceCount = 0;                    
-            //     instanceIndices.Indices = new NativeArray<int>(20, Allocator.Persistent);
-            //     instanceDataPerBatch[_initedInstanceDataCount] = instanceIndices;
-            //     _initedInstanceDataCount++;
-            // }
 
             var offset = 0;
             var batchJobHandles = stackalloc JobHandle[batchGroups.Length];
@@ -89,7 +72,6 @@ namespace BRGContainer.Runtime
                     // visibleInstanceCount[batchGroupIndex] = 0;
                     var setupDataJob = new SetupDataJob()
                     {
-                        // InstanceDataPerBatch = instanceDataPerBatch,
                         BatchGroupIndex = batchGroupIndex,
                         VisibleInstanceCount = visibleInstanceCount,
                     };
@@ -104,7 +86,6 @@ namespace BRGContainer.Runtime
                         ObjectToWorldPtr = objectToWorld,
                         VisibleInstanceCount = visibleInstanceCount,
                         VisibleIndices = visibleIndices,
-                        // InstanceDataPerBatch = instanceDataPerBatch,
                         DataOffset = maxInstancePerWindow * batchIndex,
                         BatchGroupIndex = batchGroupIndex,
                     };
@@ -138,7 +119,6 @@ namespace BRGContainer.Runtime
                     BatchGroups = batchGroups,
                     BatchGroupIndex = i,
                     BatchOffset = offset,
-                    // InstanceDataPerBatch = instanceDataPerBatch
                 };
 
                 offset += windowCount;
@@ -174,7 +154,6 @@ namespace BRGContainer.Runtime
                 BatchGroups = batchGroups,
                 DrawRangeData = drawRangeData,
                 VisibleCountPerBatch = visibleInstanceCount,
-                // InstanceDataPerBatch = instanceDataPerBatch,
                 OutputDrawCommands = drawCommands
             };
             var createDrawCommandsHandle = createDrawCommandsJob.ScheduleParallel(batchGroups.Length, 64, createDrawRangesHandle);
@@ -185,7 +164,6 @@ namespace BRGContainer.Runtime
                 BatchGroups = batchGroups,
                 VisibleCountPerBatch = visibleInstanceCount,
                 VisibleIndices = visibleIndices,
-                // InstanceDataPerBatch = instanceDataPerBatch,
                 DrawRangesData = drawRangeData,
                 OutputDrawCommands = drawCommands
             };
@@ -195,7 +173,6 @@ namespace BRGContainer.Runtime
 
             resultHandle = JobHandle.CombineDependencies(drawRangeData.Dispose(resultHandle), batchGroups.Dispose(resultHandle));
             resultHandle = cullingPlanes.Dispose(resultHandle);
-            //sven test
             resultHandle = visibleInstanceCount.Dispose(resultHandle);
             resultHandle = visibleIndices.Dispose(resultHandle);
             if (_forceJobFence) resultHandle.Complete();

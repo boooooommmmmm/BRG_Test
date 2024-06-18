@@ -52,7 +52,7 @@ namespace BRGContainer.Test
 
         private void Start()
         {
-            JobsUtility.JobWorkerCount = 10;
+            // JobsUtility.JobWorkerCount = 10;
             m_TargetPoints = new NativeArray<float3> [TotalBatchCount];
 
             //initialize brg
