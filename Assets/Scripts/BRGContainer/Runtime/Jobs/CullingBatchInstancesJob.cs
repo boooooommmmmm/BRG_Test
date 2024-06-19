@@ -18,7 +18,6 @@ namespace BRGContainer.Runtime
         [ReadOnly, NativeDisableParallelForRestriction, NativeDisableContainerSafetyRestriction]
         public NativeArray<Plane> CullingPlanes;
 
-        // [ReadOnly, NativeDisableContainerSafetyRestriction] public NativeArray<PackedMatrix> ObjectToWorld;
         [ReadOnly] public int BatchGroupIndex;
 
         [NativeDisableUnsafePtrRestriction, NativeDisableParallelForRestriction]
@@ -29,10 +28,6 @@ namespace BRGContainer.Runtime
 
         [WriteOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction] public NativeArray<int> VisibleIndices;
 
-        //sven test
-        // [WriteOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction]
-        // public NativeArray<BatchInstanceData> InstanceDataPerBatch;
-
         public int DataOffset;
 
         //@TODO: need AABB
@@ -42,11 +37,7 @@ namespace BRGContainer.Runtime
 
         public unsafe void Execute(int index)
         {
-            // var matrix = ObjectToWorld[index + DataOffset];
-            //Sven test
-            // return;
             var matrix = ObjectToWorldPtr[index];
-
 
             //@TODO: temp code
             AABB aabb = new AABB

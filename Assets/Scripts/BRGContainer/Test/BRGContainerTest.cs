@@ -74,6 +74,8 @@ namespace BRGContainer.Test
 
         private void Update()
         {
+            if (m_BrgContainer == null)
+                return;
             //add batch
             if (NeedAddBatch())
             {

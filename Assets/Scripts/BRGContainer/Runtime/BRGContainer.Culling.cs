@@ -34,7 +34,7 @@ namespace BRGContainer.Runtime
             BatchCullingOutput cullingOutput, IntPtr userContext)
         {
             cullingOutput.drawCommands[0] = new BatchCullingOutputDrawCommands();
-            var batchGroups = m_Groups.GetValueArray(Allocator.TempJob);
+            NativeArray<BatchGroup> batchGroups = m_Groups.GetValueArray(Allocator.TempJob);
 
             var batchCount = 0;
             for (var i = 0; i < batchGroups.Length; i++)
@@ -50,8 +50,8 @@ namespace BRGContainer.Runtime
                 cullingPlanes = cullingContext.cullingPlanes;
             }
             
-            var visibleInstanceCount = new NativeArray<int>(batchGroups.Length, Allocator.TempJob); //assume each batch only has one window 
-            var visibleIndices = new NativeArray<int>(batchGroups.Length * 20 * 1, Allocator.TempJob); //assume each batch only has one window
+            NativeArray<int> visibleInstanceCount = new NativeArray<int>(batchGroups.Length, Allocator.TempJob); //assume each batch only has one window 
+            NativeArray<int> visibleIndices = new NativeArray<int>(batchGroups.Length * 20 * 1, Allocator.TempJob); //assume each batch only has one window
 
             var offset = 0;
             var batchJobHandles = stackalloc JobHandle[batchGroups.Length];
@@ -62,8 +62,6 @@ namespace BRGContainer.Runtime
                 var maxInstancePerWindow = batchGroup.m_BatchDescription.MaxInstancePerWindow;
                 var windowCount = batchGroup.GetWindowCount();
                 windowCount = 1; // assume window count is always 1.
-                // var objectToWorld = batchGroup.GetObjectToWorldArray(Allocator.TempJob);
-                //Sven test
                 var objectToWorld = batchGroup.GetO2WArrayPtr();
 
                 JobHandle batchHandle = default;
@@ -92,7 +90,6 @@ namespace BRGContainer.Runtime
                     var cullingBatchInstancesJob = new CullingBatchInstancesJob
                     {
                         CullingPlanes = cullingPlanes,
-                        // ObjectToWorld = objectToWorld,
                         ObjectToWorldPtr = objectToWorld,
                         VisibleInstanceCount = visibleInstanceCount,
                         VisibleIndices = visibleIndices,
@@ -108,7 +105,6 @@ namespace BRGContainer.Runtime
                 }
 
                 offset += windowCount;
-                // batchJobHandles[batchGroupIndex] = objectToWorld.Dispose(batchHandle);
                 batchJobHandles[batchGroupIndex] = batchHandle;
             }
 

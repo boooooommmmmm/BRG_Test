@@ -17,10 +17,8 @@
         [ReadOnly]
         public NativeArray<int> VisibleCountPerBatch;
         [ReadOnly] public NativeArray<int> VisibleIndices;
-        // [ReadOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction]
-        // public NativeArray<BatchInstanceData> InstanceDataPerBatch;
-        [ReadOnly]
-        public NativeArray<BatchGroupDrawRange> DrawRangesData;
+        
+        [ReadOnly] public NativeArray<BatchGroupDrawRange> DrawRangesData;
 
         [NativeDisableUnsafePtrRestriction]
         public unsafe BatchCullingOutputDrawCommands* OutputDrawCommands;
@@ -43,18 +41,12 @@
                 if (visibleCountPerBatch == 0) // there is no any visible instances for this batch
                     continue;
                 
-                // UnsafeUtility.MemCpy((void*)((IntPtr) OutputDrawCommands->visibleInstances + visibleOffset * UnsafeUtility.SizeOf<int>()), batchInstanceData.Indices.GetUnsafeReadOnlyPtr(), visibleCountPerBatch * UnsafeUtility.SizeOf<int>());
-                
                 //sven test
                 int size = 20;
                 int offset = batchIndex * size;
                 UnsafeUtility.MemCpy((void*)((IntPtr) OutputDrawCommands->visibleInstances + visibleOffset * UnsafeUtility.SizeOf<int>()), (int*)VisibleIndices.GetUnsafeReadOnlyPtr() + offset, visibleCountPerBatch * UnsafeUtility.SizeOf<int>());
 
                 visibleOffset += visibleCountPerBatch;
-                // UnsafeUtility.FreeTracked(batchInstanceData.Indices, Allocator.TempJob);
-                // batchInstanceData.Indices = null;
-                
-                // InstanceDataPerBatch[batchIndex] = batchInstanceData;
             }
         }
     }

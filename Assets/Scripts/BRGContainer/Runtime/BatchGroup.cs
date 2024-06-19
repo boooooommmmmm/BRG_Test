@@ -1,4 +1,6 @@
-﻿namespace BRGContainer.Runtime
+﻿// data for jobs
+
+namespace BRGContainer.Runtime
 {
     using System;
     using System.Collections;
@@ -43,9 +45,9 @@
 
         public BatchRendererData BatchRendererData;
 
-        public readonly unsafe bool IsCreated => (IntPtr)m_DataBuffer != IntPtr.Zero &&
-                                                 (IntPtr)m_Batches != IntPtr.Zero &&
-                                                 (IntPtr)m_InstanceCount != IntPtr.Zero;
+        // public readonly unsafe bool IsCreated => (IntPtr)m_DataBuffer != IntPtr.Zero &&
+        //                                          (IntPtr)m_Batches != IntPtr.Zero &&
+        //                                          (IntPtr)m_InstanceCount != IntPtr.Zero;
 
         public readonly unsafe BatchID this[int index] => m_Batches[index];
 
@@ -106,7 +108,6 @@
 
         public unsafe void SetState(int index, int state)
         {
-            UnsafeUtility.WriteArrayElement(m_O2WArray, index, state);
         }
 
         public unsafe int* GetVisibleBufferPtr(int view)
@@ -116,7 +117,7 @@
 
         public readonly unsafe NativeArray<float4> GetNativeBuffer()
         {
-            var array = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<float4>(m_DataBuffer, m_BufferLength, m_Allocator);
+            NativeArray<float4> array = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<float4>(m_DataBuffer, m_BufferLength, m_Allocator);
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref array, m_Allocator == Allocator.Temp ? AtomicSafetyHandle.GetTempMemoryHandle() : AtomicSafetyHandle.Create());
 #endif
@@ -159,26 +160,26 @@
             Interlocked.Exchange(ref *m_InstanceCount, instanceCount);
         }
 
-        public unsafe NativeArray<PackedMatrix> GetObjectToWorldArray(Allocator allocator)
-        {
-            var nativeArray = new NativeArray<PackedMatrix>(InstanceCount, allocator);
-            var windowCount = this.GetWindowCount();
-
-            for (var i = 0; i < windowCount; i++)
-            {
-                var instanceCountPerWindow = this.GetInstanceCountPerWindow(i);
-                var sourceOffset = i * m_BatchDescription.AlignedWindowSize;
-                var destinationOffset = i * m_BatchDescription.MaxInstancePerWindow * UnsafeUtility.SizeOf<PackedMatrix>();
-                var size = instanceCountPerWindow * UnsafeUtility.SizeOf<PackedMatrix>();
-
-                var sourcePtr = (void*)((IntPtr)m_DataBuffer + sourceOffset);
-                var destinationPtr = (void*)((IntPtr)nativeArray.GetUnsafePtr() + destinationOffset);
-
-                UnsafeUtility.MemCpy(destinationPtr, sourcePtr, size);
-            }
-
-            return nativeArray;
-        }
+        // public unsafe NativeArray<PackedMatrix> GetObjectToWorldArray(Allocator allocator)
+        // {
+        //     var nativeArray = new NativeArray<PackedMatrix>(InstanceCount, allocator);
+        //     var windowCount = this.GetWindowCount();
+        //
+        //     for (var i = 0; i < windowCount; i++)
+        //     {
+        //         var instanceCountPerWindow = this.GetInstanceCountPerWindow(i);
+        //         var sourceOffset = i * m_BatchDescription.AlignedWindowSize;
+        //         var destinationOffset = i * m_BatchDescription.MaxInstancePerWindow * UnsafeUtility.SizeOf<PackedMatrix>();
+        //         var size = instanceCountPerWindow * UnsafeUtility.SizeOf<PackedMatrix>();
+        //
+        //         var sourcePtr = (void*)((IntPtr)m_DataBuffer + sourceOffset);
+        //         var destinationPtr = (void*)((IntPtr)nativeArray.GetUnsafePtr() + destinationOffset);
+        //
+        //         UnsafeUtility.MemCpy(destinationPtr, sourcePtr, size);
+        //     }
+        //
+        //     return nativeArray;
+        // }
 
         public readonly unsafe BatchID* GetUnsafePtr()
         {
