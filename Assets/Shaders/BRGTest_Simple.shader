@@ -50,6 +50,10 @@ Shader "BRG Test/Simple Lit"
         Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "UniversalMaterialType" = "SimpleLit" "IgnoreProjector" = "True" "ShaderModel"="4.5"}
         LOD 300
 
+        HLSLPROGRAM
+        #pragma enable_d3d11_debug_symbols
+        #ENDHLSL
+
         Pass
         {
             Name "ForwardLit"
@@ -138,7 +142,7 @@ Shader "BRG Test/Simple Lit"
             // GPU Instancing
             #pragma multi_compile_instancing
             #pragma multi_compile _ DOTS_INSTANCING_ON
-            #define DOTS_INSTANCING_ON
+            // #define DOTS_INSTANCING_ON
 
             // -------------------------------------
             // Universal Pipeline keywords

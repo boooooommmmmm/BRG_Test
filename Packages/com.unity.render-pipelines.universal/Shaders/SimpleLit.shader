@@ -50,6 +50,10 @@ Shader "Universal Render Pipeline/Simple Lit"
     {
         Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "UniversalMaterialType" = "SimpleLit" "IgnoreProjector" = "True" "ShaderModel"="4.5"}
         LOD 300
+        
+        HLSLINCLUDE
+        #pragma enable_d3d11_debug_symbols
+        ENDHLSL
 
         Pass
         {
@@ -62,6 +66,7 @@ Shader "Universal Render Pipeline/Simple Lit"
             Cull[_Cull]
 
             HLSLPROGRAM
+            // #pragma enable_d3d11_debug_symbols
             #pragma exclude_renderers gles gles3 glcore
             #pragma target 4.5
 
