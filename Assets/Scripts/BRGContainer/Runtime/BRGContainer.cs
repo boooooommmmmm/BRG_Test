@@ -16,10 +16,6 @@ using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-#if ENABLE_IL2CPP
-using Il2Cpp;
-#endif
-
 
 
 namespace BRGContainer.Runtime
@@ -40,20 +36,10 @@ namespace BRGContainer.Runtime
         private Camera m_Camera;
 
 
-        //static -> delegate
-        private static readonly FunctionPointer<UploadDelegate> m_UploadFunctionPointer;
-        private static readonly FunctionPointer<DestroyBatchDelegate> m_DestroyBatchFunctionPointer;
-        private static readonly FunctionPointer<IsBatchAliveDelegate> m_IsBatchAliveFunctionPointer;
-
-
         //static
         static BRGContainer()
         {
             m_Containers = new ConcurrentDictionary<ContainerID, BRGContainer>();
-
-            m_UploadFunctionPointer = new FunctionPointer<UploadDelegate>(Marshal.GetFunctionPointerForDelegate(new UploadDelegate(UploadCallback)));
-            m_DestroyBatchFunctionPointer = new FunctionPointer<DestroyBatchDelegate>(Marshal.GetFunctionPointerForDelegate(new DestroyBatchDelegate(DestroyBatchCallback)));
-            m_IsBatchAliveFunctionPointer = new FunctionPointer<IsBatchAliveDelegate>(Marshal.GetFunctionPointerForDelegate(new IsBatchAliveDelegate(IsAliveCallback)));
         }
 
         private BRGContainer()
@@ -105,14 +91,13 @@ namespace BRGContainer.Runtime
             m_GraphicsBuffers.Add(batchId, graphicsBuffer);
             m_Groups.Add(batchId, batchGroup);
 
-            return new BatchHandle(m_ContainerId, batchId, batchGroup.GetNativeBuffer(), batchGroup.m_InstanceCount,
-                ref batchDescription, m_UploadFunctionPointer, m_DestroyBatchFunctionPointer, m_IsBatchAliveFunctionPointer);
+            return new BatchHandle(m_ContainerId, batchId, batchGroup.GetNativeBuffer(), batchGroup.m_InstanceCount, ref batchDescription);
         }
 
 
         public void RemoveBatch(in BatchHandle batchHandle)
         {
-            DestroyBatchCallback(m_ContainerId, batchHandle.m_BatchId);
+            DestroyBatch(m_ContainerId, batchHandle.m_BatchId);
         }
 
         public void GetBatchData(in BatchHandle batchHandle, out BatchDescription batchDescription, out BatchRendererData batchRendererData)
@@ -123,8 +108,7 @@ namespace BRGContainer.Runtime
             batchDescription = batchGroup.m_BatchDescription;
             batchRendererData = batchGroup.BatchRendererData;
         }
-        
-        //sven test
+
         public BatchGroup GetBatchGroup(BatchID id)
         {
             return m_Groups[id];
@@ -149,8 +133,7 @@ namespace BRGContainer.Runtime
             m_Containers.TryRemove(m_ContainerId, out _);
         }
 
-        [AOT.MonoPInvokeCallback(typeof(UploadDelegate))]
-        private static void UploadCallback(ContainerID containerID, BatchID batchID, NativeArray<float4> data, int nativeBufferStartIndex, int graphicsBufferStartIndex, int count)
+        internal static void UploadCallback(ContainerID containerID, BatchID batchID, NativeArray<float4> data, int nativeBufferStartIndex, int graphicsBufferStartIndex, int count)
         {
             if (!m_Containers.TryGetValue(containerID, out var container))
                 return;
@@ -158,8 +141,7 @@ namespace BRGContainer.Runtime
             container.m_GraphicsBuffers[batchID].SetData(data, nativeBufferStartIndex, graphicsBufferStartIndex, count);
         }
 
-        [AOT.MonoPInvokeCallback(typeof(DestroyBatchDelegate))]
-        private static void DestroyBatchCallback(ContainerID containerID, BatchID batchID)
+        internal static void DestroyBatch(ContainerID containerID, BatchID batchID)
         {
             if (!m_Containers.TryGetValue(containerID, out var container))
                 return;
@@ -175,8 +157,7 @@ namespace BRGContainer.Runtime
                 graphicsBuffer.Dispose();
         }
 
-        [AOT.MonoPInvokeCallback(typeof(IsBatchAliveDelegate))]
-        private static bool IsAliveCallback(ContainerID containerID, BatchID batchId)
+        internal static bool IsAlive(ContainerID containerID, BatchID batchId)
         {
             if (!m_Containers.TryGetValue(containerID, out var container))
                 return false;

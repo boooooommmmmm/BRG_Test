@@ -24,18 +24,15 @@
         private readonly unsafe int* m_InstanceCount;
         [NativeDisableContainerSafetyRestriction]
         private readonly BatchDescription m_Description;
-        
-        private readonly FunctionPointer<UploadDelegate> m_UploadCallback;
-        private readonly FunctionPointer<DestroyBatchDelegate> m_DestroyCallback;
-        private readonly FunctionPointer<IsBatchAliveDelegate> m_IsAliveCallback;
 
-        public bool IsCreated => m_UploadCallback.IsCreated && m_DestroyCallback.IsCreated && m_IsAliveCallback.IsCreated;
+        private readonly bool isCreated;
+
+        public bool IsCreated => isCreated;
         public bool IsAlive => IsCreated && CheckIfIsAlive(m_ContainerId, m_BatchId);
         public unsafe int InstanceCount => (IntPtr)m_InstanceCount == IntPtr.Zero ? 0 : *m_InstanceCount;
 
         // [ExcludeFromBurstCompatTesting("BatchHandle creating is unburstable")]
-        internal unsafe BatchHandle(ContainerID containerId, BatchID batchId, NativeArray<float4> buffer, int* instanceCount, ref BatchDescription description, 
-            FunctionPointer<UploadDelegate> uploadCallback, FunctionPointer<DestroyBatchDelegate> destroyCallback, FunctionPointer<IsBatchAliveDelegate> isAliveCallback)
+        internal unsafe BatchHandle(ContainerID containerId, BatchID batchId, NativeArray<float4> buffer, int* instanceCount, ref BatchDescription description)
         {
             m_ContainerId = containerId;
             m_BatchId = batchId;
@@ -44,9 +41,7 @@
             m_InstanceCount = instanceCount;
             m_Description = description;
             
-            m_UploadCallback = uploadCallback;
-            m_DestroyCallback = destroyCallback;
-            m_IsAliveCallback = isAliveCallback;
+            isCreated = true;
         }
 
         /// <summary>
@@ -134,32 +129,19 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Upload(ContainerID containerId, BatchID batchId, NativeArray<float4> data, int nativeBufferStartIndex, int graphicsBufferStartIndex, int count)
         {
-            unsafe
-            {
-                ((delegate * unmanaged[Cdecl] <ContainerID, BatchID, NativeArray<float4>, int, int, int, void>)m_UploadCallback.Value)(containerId, batchId, data, 
-                    nativeBufferStartIndex, graphicsBufferStartIndex, count);
-            }
+            BRGContainer.UploadCallback(containerId, m_BatchId, data, nativeBufferStartIndex, graphicsBufferStartIndex, count);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Destroy(ContainerID containerId, BatchID batchId)
         {
-            unsafe
-            {
-                ((delegate * unmanaged[Cdecl] <ContainerID, BatchID, void>)m_DestroyCallback.Value)(containerId, batchId);
-            }
+            BRGContainer.DestroyBatch(containerId, batchId);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool CheckIfIsAlive(ContainerID containerId, BatchID batchId)
         {
-            bool isAlive;
-            unsafe
-            {
-                isAlive = ((delegate * unmanaged[Cdecl] <ContainerID, BatchID, bool>)m_IsAliveCallback.Value)(containerId, batchId);
-            }
-
-            return isAlive;
+            return BRGContainer.IsAlive(containerId, batchId);
         }
     }
 }

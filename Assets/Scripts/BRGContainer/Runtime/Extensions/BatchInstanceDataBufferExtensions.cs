@@ -4,15 +4,7 @@
     using Unity.Burst;
     using Unity.Mathematics;
     using UnityEngine;
-#if ENABLE_IL2CPP
-    using Il2Cpp;
-#endif
-
-#if ENABLE_IL2CPP
-    [Il2CppSetOption(Option.NullChecks, false)]
-    [Il2CppSetOption(Option.ArrayBoundsChecks, false)]
-    [Il2CppSetOption(Option.DivideByZeroChecks, false)]
-#endif
+    
     public static class BatchInstanceDataBufferExtensions
     {
         private static readonly SharedStatic<int> m_ObjectToWorldPropertyId = SharedStatic<int>.GetOrCreate<int, ObjectToWorldPropertyId>();

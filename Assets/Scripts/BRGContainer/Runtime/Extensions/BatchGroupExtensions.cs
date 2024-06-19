@@ -1,15 +1,7 @@
 ﻿namespace BRGContainer.Runtime
 {
     using System.Runtime.CompilerServices;
-#if ENABLE_IL2CPP
-    using Il2Cpp;
-#endif
-
-#if ENABLE_IL2CPP
-    [Il2CppSetOption(Option.NullChecks, false)]
-    [Il2CppSetOption(Option.ArrayBoundsChecks, false)]
-    [Il2CppSetOption(Option.DivideByZeroChecks, false)]
-#endif
+    
     public static class BatchGroupExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
