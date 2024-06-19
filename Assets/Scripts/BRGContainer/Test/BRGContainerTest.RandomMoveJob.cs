@@ -44,7 +44,8 @@ partial struct BRGContainerTestRandomMoveJob : IJobParallelFor
         curPos += dir * m_DeltaTime;// math.lerp(curPos, targetMovePoints[index], m_DeltaTime);
 
         var matrix = PackedMatrix.TRS(curPos, Quaternion.LookRotation(dir), Vector3.one);
-        InstanceDataBuffer.SetMatrix(index, ObjectToWorldPropertyId,  matrix);
+        // InstanceDataBuffer.SetMatrix(index, ObjectToWorldPropertyId,  matrix);
+        InstanceDataBuffer.SetTRS(index, curPos, Quaternion.LookRotation(dir), Vector3.one);
         BatchGroup.SetO2WMatrix(index, matrix);
         
     }
