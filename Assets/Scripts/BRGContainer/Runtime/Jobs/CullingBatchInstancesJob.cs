@@ -31,21 +31,22 @@ namespace BRGContainer.Runtime
         public int DataOffset;
 
         //@TODO: need AABB
-        // public static AABB aabb = new AABB( ) {Center = float3.zero, Extents = new float3(1,1,1)};
+        
+        public static float3 size = new float3(1, 1, 1);
 
         public static int sizeOfPackedMatrix = UnsafeUtility.SizeOf<PackedMatrix>();
 
         public unsafe void Execute(int index)
         {
             var matrix = ObjectToWorldPtr[index];
+            var pos = matrix.GetPosition();
 
             //@TODO: temp code
-            AABB aabb = new AABB
+            HISMAABB aabb = new HISMAABB()
             {
-                Center = float3.zero,
-                Extents = Vector3.one
+                Min = pos - size,
+                Max = pos + size,
             };
-            aabb = AABB.Transform(matrix.fullMatrix, aabb);
 
             for (var i = 0; i < CullingPlanes.Length; i++)
             {
