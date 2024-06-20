@@ -1,6 +1,4 @@
-﻿//#define TEMP_TEST_MODE
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
@@ -79,11 +77,7 @@ namespace BRGContainer.Runtime
                         BatchGroupIndex = batchGroupIndex,
                         VisibleInstanceCount = visibleInstanceCount,
                     };
-                    #if TEMP_TEST_MODE
-                    var setupDataJobHandle = setupDataJob.Schedule(maxInstanceCountPerBatch, 64, batchHandle);
-                    #else
                     var setupDataJobHandle = setupDataJob.ScheduleByRef(maxInstanceCountPerBatch, 64, batchHandle);
-                    #endif
                     if (_forceJobFence) setupDataJobHandle.Complete();
                     
                     // culling
@@ -96,11 +90,7 @@ namespace BRGContainer.Runtime
                         DataOffset = maxInstancePerWindow * batchIndex,
                         BatchGroupIndex = batchGroupIndex,
                     };
-                    #if TEMP_TEST_MODE
-                    batchHandle = cullingBatchInstancesJob.Schedule(maxInstanceCountPerBatch, 64, setupDataJobHandle);
-                    #else
                     batchHandle = cullingBatchInstancesJob.ScheduleByRef(maxInstanceCountPerBatch, 64, setupDataJobHandle);
-                    #endif
                     if (_forceJobFence) batchHandle.Complete();
                 }
 

@@ -1,6 +1,4 @@
-﻿//#define TEMP_TEST_MODE
-
-using System;
+﻿using System;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -45,13 +43,7 @@ namespace BRGContainer.Runtime
         private BRGContainer()
         {
             m_ContainerId = new ContainerID(Interlocked.Increment(ref m_ContainerGlobalID));
-
-#if TEMP_TEST_MODE
-            m_BatchRendererGroup = new BatchRendererGroup(TempCullingCallback);
-#else
             m_BatchRendererGroup = new BatchRendererGroup(CullingCallback, IntPtr.Zero);
-#endif
-
             m_GraphicsBuffers = new Dictionary<BatchID, GraphicsBuffer>();
             m_Groups = new NativeParallelHashMap<BatchID, BatchGroup>(1, Allocator.Persistent);
 
@@ -60,10 +52,7 @@ namespace BRGContainer.Runtime
 
         public BRGContainer(Bounds bounds) : this()
         {
-            #if TEMP_TEST_MODE
-            #else
             m_BatchRendererGroup.SetGlobalBounds(bounds);
-            #endif
         }
 
         public void SetCamera(Camera camera)
@@ -81,11 +70,7 @@ namespace BRGContainer.Runtime
         {
             GraphicsBuffer graphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, batchDescription.TotalBufferSize);
             BatchRendererData rendererData = CreateRendererData(rendererDescription, mesh, subMeshIndex, material);
-            #if TEMP_TEST_MODE
-            BatchGroup batchGroup = CreateBatchGroup(ref batchDescription, ref rendererData, new GraphicsBufferHandle(), batchDescription.m_Allocator);
-            #else
             BatchGroup batchGroup = CreateBatchGroup(ref batchDescription, ref rendererData, graphicsBuffer.bufferHandle, batchDescription.m_Allocator);
-            #endif
 
             var batchId = batchGroup[0];
             m_GraphicsBuffers.Add(batchId, graphicsBuffer);
