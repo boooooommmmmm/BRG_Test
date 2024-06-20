@@ -28,20 +28,16 @@ namespace BRGContainer.Runtime
         internal BatchDescription m_BatchDescription;
 
         [NativeDisableUnsafePtrRestriction] private unsafe float4* m_DataBuffer;
-        [NativeDisableUnsafePtrRestriction] private unsafe BatchID* m_Batches;
+        [NativeDisableUnsafePtrRestriction] private unsafe BatchID* m_Batches; // for support multiple windows
         [NativeDisableUnsafePtrRestriction] internal unsafe int* m_InstanceCount;
-
-        //sven test
-        [NativeDisableUnsafePtrRestriction]
-        private unsafe PackedMatrix* m_O2WArray;
-        [NativeDisableUnsafePtrRestriction]
-        private unsafe int* m_State;
-        [NativeDisableUnsafePtrRestriction]
-        private unsafe int* m_Visibility; //native array for filling visibility index, count = length * viewCount
 
         public readonly int Length;
         private readonly int m_BufferLength;
         private Allocator m_Allocator;
+        
+        //sven test
+        [NativeDisableUnsafePtrRestriction] private unsafe float3* m_Positions;
+        [NativeDisableUnsafePtrRestriction] private unsafe int* m_Visibles;
 
         public BatchRendererData BatchRendererData;
 
@@ -50,6 +46,9 @@ namespace BRGContainer.Runtime
         //                                          (IntPtr)m_InstanceCount != IntPtr.Zero;
 
         public readonly unsafe BatchID this[int index] => m_Batches[index];
+
+        public readonly unsafe float3* PositionsPtr => m_Positions;
+        public readonly unsafe int* VisiblesPtr => m_Visibles;
 
         public readonly unsafe int InstanceCount
         {
@@ -76,43 +75,12 @@ namespace BRGContainer.Runtime
             m_InstanceCount = (int*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<int>(),
                 UnsafeUtility.AlignOf<int>(), allocator);
             UnsafeUtility.MemClear(m_InstanceCount, UnsafeUtility.SizeOf<int>());
-
+            
             //sven test
-            m_O2WArray = (PackedMatrix*)new NativeArray<PackedMatrix>(m_BufferLength, allocator).GetUnsafePtr();
-            m_Visibility = (int*)new NativeArray<int>(m_BufferLength, allocator).GetUnsafePtr();
-            m_State = (int*)new NativeArray<int>(m_BufferLength * 2, allocator).GetUnsafePtr();
-        }
-
-        //sven test
-        public unsafe NativeArray<PackedMatrix> GetO2WArray()
-        {
-            var a = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<PackedMatrix>(m_O2WArray, m_BufferLength, m_Allocator);
-            return a;
-        }
-        
-        public unsafe PackedMatrix* GetO2WArrayPtr()
-        {
-            return m_O2WArray;
-        }
-        
-        [BRGMethodThreadUnsafe]
-        public unsafe void SetO2WMatrix(int index, PackedMatrix matrix)
-        {
-            UnsafeUtility.WriteArrayElement(m_O2WArray, index, matrix);
-        }
-
-        public unsafe int* GetStatePrt()
-        {
-            return m_State;
-        }
-
-        public unsafe void SetState(int index, int state)
-        {
-        }
-
-        public unsafe int* GetVisibleBufferPtr(int view)
-        {
-            return m_Visibility + view * m_BufferLength * s_SizeOfInt;
+            m_Positions = (float3*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<float3>() * m_BatchDescription.MaxInstanceCount,
+                UnsafeUtility.AlignOf<float3>(), allocator);
+            m_Visibles = (int*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<int>() * m_BatchDescription.MaxInstanceCount,
+                UnsafeUtility.AlignOf<int>(), allocator);
         }
 
         public readonly unsafe NativeArray<float4> GetNativeBuffer()
@@ -186,6 +154,12 @@ namespace BRGContainer.Runtime
             return m_Batches;
         }
 
+        [BRGMethodThreadUnsafe]
+        public unsafe void SetPosition(int index, float3 position)
+        {
+            m_Positions[index] = position;
+        }
+
         public unsafe void Dispose()
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
@@ -197,10 +171,6 @@ namespace BRGContainer.Runtime
                 throw new InvalidOperationException($"The {nameof(BatchGroup)} is already disposed");
             if ((IntPtr)m_InstanceCount == IntPtr.Zero)
                 throw new InvalidOperationException($"The {nameof(BatchGroup)} is already disposed");
-            //sven test
-            if ((IntPtr)m_O2WArray == IntPtr.Zero)
-                throw new InvalidOperationException($"The {nameof(BatchGroup)} is already disposed");
-            
 #endif
 
             if (m_Allocator > Allocator.None)
@@ -208,22 +178,19 @@ namespace BRGContainer.Runtime
                 UnsafeUtility.Free(m_DataBuffer, m_Allocator);
                 UnsafeUtility.Free(m_Batches, m_Allocator);
                 UnsafeUtility.Free(m_InstanceCount, m_Allocator);
+                // sven test
+                UnsafeUtility.Free(m_Positions, m_Allocator);
+                UnsafeUtility.Free(m_Visibles, m_Allocator);
 
                 m_BatchDescription.Dispose();
                 BatchRendererData.Dispose();
                 
-                //sven test
-                UnsafeUtility.Free(m_O2WArray, m_Allocator);
-                UnsafeUtility.Free(m_Visibility, m_Allocator);
-                UnsafeUtility.Free(m_State, m_Allocator);
-
                 m_Allocator = Allocator.Invalid;
             }
 
             m_DataBuffer = null;
             m_Batches = null;
             m_InstanceCount = null;
-            m_O2WArray = null;//sven test
         }
 
         public unsafe JobHandle Dispose(JobHandle inputDeps)

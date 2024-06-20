@@ -52,7 +52,7 @@ namespace BRGContainer.Test
 
         private void Start()
         {
-            // JobsUtility.JobWorkerCount = 10;
+            JobsUtility.JobWorkerCount = 15;
             m_TargetPoints = new NativeArray<float3> [TotalBatchCount];
 
             //initialize brg
@@ -154,7 +154,6 @@ namespace BRGContainer.Test
                 newTargetPos.z = random.NextFloat(m_randomRange.z, m_randomRange.w);
                 _targetPos[j] = newTargetPos;
             }
-
 
             //
             var materialProperties = new NativeArray<MaterialProperty>(1, Allocator.Temp)

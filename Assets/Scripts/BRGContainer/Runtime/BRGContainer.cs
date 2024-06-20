@@ -71,8 +71,8 @@ namespace BRGContainer.Runtime
             GraphicsBuffer graphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, batchDescription.TotalBufferSize);
             BatchRendererData rendererData = CreateRendererData(rendererDescription, mesh, subMeshIndex, material);
             BatchGroup batchGroup = CreateBatchGroup(ref batchDescription, ref rendererData, graphicsBuffer.bufferHandle, batchDescription.m_Allocator);
-
-            var batchId = batchGroup[0];
+            
+            BatchID batchId = batchGroup[0];
             m_GraphicsBuffers.Add(batchId, graphicsBuffer);
             m_Groups.Add(batchId, batchGroup);
 

@@ -1,4 +1,6 @@
-﻿namespace BRGContainer.Runtime
+﻿using System.Collections.Generic;
+
+namespace BRGContainer.Runtime
 {
     using System;
     using System.Runtime.InteropServices;
@@ -16,7 +18,7 @@
         public NativeArray<BatchGroup> BatchGroups;
         [ReadOnly]
         public NativeArray<int> VisibleCountPerBatch;
-        [ReadOnly] public NativeArray<int> VisibleIndices;
+        // [ReadOnly] public NativeArray<int> VisibleIndices;
         
         [ReadOnly] public NativeArray<BatchGroupDrawRange> DrawRangesData;
 
@@ -32,6 +34,7 @@
             var batchGroup = BatchGroups[index];
             var windowCount = batchGroup.GetWindowCount();
             var visibleOffset = drawRangeData.VisibleIndexOffset;
+            var visibleIndices = batchGroup.VisiblesPtr; 
 
             var batchStartIndex = drawRangeData.BatchIndex;
             for (var i = 0; i < windowCount; i++)
@@ -42,9 +45,10 @@
                     continue;
                 
                 //sven test
-                int size = 20;
-                int offset = batchIndex * size;
-                UnsafeUtility.MemCpy((void*)((IntPtr) OutputDrawCommands->visibleInstances + visibleOffset * UnsafeUtility.SizeOf<int>()), (int*)VisibleIndices.GetUnsafeReadOnlyPtr() + offset, visibleCountPerBatch * UnsafeUtility.SizeOf<int>());
+                // int size = 20;
+                // int offset = batchIndex * size;
+                // UnsafeUtility.MemCpy((void*)((IntPtr) OutputDrawCommands->visibleInstances + visibleOffset * UnsafeUtility.SizeOf<int>()), (int*)VisibleIndices.GetUnsafeReadOnlyPtr() + offset, visibleCountPerBatch * UnsafeUtility.SizeOf<int>());
+                UnsafeUtility.MemCpy((void*)((IntPtr) OutputDrawCommands->visibleInstances + visibleOffset * UnsafeUtility.SizeOf<int>()), visibleIndices, visibleCountPerBatch * UnsafeUtility.SizeOf<int>());
 
                 visibleOffset += visibleCountPerBatch;
             }

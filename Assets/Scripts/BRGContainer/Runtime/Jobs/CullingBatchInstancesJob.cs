@@ -19,41 +19,34 @@ namespace BRGContainer.Runtime
         public NativeArray<Plane> CullingPlanes;
 
         [ReadOnly] public int BatchGroupIndex;
-
-        [NativeDisableUnsafePtrRestriction, NativeDisableParallelForRestriction]
-        public unsafe PackedMatrix* ObjectToWorldPtr; //sven test
+        [ReadOnly, NativeDisableUnsafePtrRestriction] public unsafe float3* Positions;
+        [ReadOnly] public float3 Extents;
 
         [WriteOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction]
         public NativeArray<int> VisibleInstanceCount;
 
-        [WriteOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction] public NativeArray<int> VisibleIndices;
+        // [WriteOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction]
+        // public NativeArray<int> VisibleIndices;
+        [WriteOnly, NativeDisableUnsafePtrRestriction]
+        public unsafe int* VisibleIndices;
 
         public int DataOffset;
 
-        //@TODO: need AABB
-        
-        public static float3 size = new float3(1, 1, 1);
-
-        public static int sizeOfPackedMatrix = UnsafeUtility.SizeOf<PackedMatrix>();
+        private const int PLANE_COUNT = 6;
 
         public unsafe void Execute(int index)
         {
-            var matrix = ObjectToWorldPtr[index];
-            var pos = matrix.GetPosition();
+            // var matrix = ObjectToWorldPtr[index];
+            float3 pos = Positions[index];
 
-            //@TODO: temp code
-            HISMAABB aabb = new HISMAABB()
-            {
-                Min = pos - size,
-                Max = pos + size,
-            };
-
-            for (var i = 0; i < CullingPlanes.Length; i++)
+            for (var i = 0; i < PLANE_COUNT; i++)
             {
                 var plane = CullingPlanes[i];
                 var normal = plane.normal;
-                var distance = math.dot(normal, aabb.Center) + plane.distance;
-                var radius = math.dot(aabb.Extents, math.abs(normal));
+                // var distance = math.dot(normal, aabb.Center) + plane.distance;
+                // var radius = math.dot(aabb.Extents, math.abs(normal));
+                var distance = math.dot(normal, pos) + plane.distance;
+                var radius = math.dot(Extents, math.abs(normal));
 
                 if (distance + radius <= 0)
                     return;
@@ -61,14 +54,9 @@ namespace BRGContainer.Runtime
 
             // sven test
             int count = Interlocked.Increment(ref UnsafeUtility.ArrayElementAsRef<int>(VisibleInstanceCount.GetUnsafePtr(), BatchGroupIndex));
-            int offset = BatchGroupIndex * 20; //sven test
-            VisibleIndices[offset + count - 1] = index;
-
-            //sven test
-            // ref BatchInstanceData instanceIndices = ref UnsafeUtility.ArrayElementAsRef<BatchInstanceData>(InstanceDataPerBatch.GetUnsafePtr(), BatchGroupIndex);
-            // int count = Interlocked.Increment(ref instanceIndices.VisibleInstanceCount);
-            // // UnsafeUtility.WriteArrayElement(instanceIndices.Indices, count - 1, index);
-            // instanceIndices.Indices[count - 1] = index;
+            // int offset = BatchGroupIndex * 20;
+            // VisibleIndices[offset + count - 1] = index;
+            VisibleIndices[count - 1] = index;
         }
     }
 }

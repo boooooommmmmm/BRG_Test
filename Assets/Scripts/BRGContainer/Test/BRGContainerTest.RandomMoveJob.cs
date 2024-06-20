@@ -41,12 +41,9 @@ partial struct BRGContainerTestRandomMoveJob : IJobParallelFor
         }
  
         dir = math.normalizesafe(targetMovePoints[index] - curPos, Vector3.forward);
-        curPos += dir * m_DeltaTime;// math.lerp(curPos, targetMovePoints[index], m_DeltaTime);
-
-        var matrix = PackedMatrix.TRS(curPos, Quaternion.LookRotation(dir), Vector3.one);
-        // InstanceDataBuffer.SetMatrix(index, ObjectToWorldPropertyId,  matrix);
-        InstanceDataBuffer.SetTRS(index, curPos, Quaternion.LookRotation(dir), Vector3.one);
-        BatchGroup.SetO2WMatrix(index, matrix);
+        curPos += dir * m_DeltaTime;
         
+        InstanceDataBuffer.SetTRS(index, curPos, Quaternion.LookRotation(dir), Vector3.one);
+        BatchGroup.SetPosition(index, curPos);
     }
 }

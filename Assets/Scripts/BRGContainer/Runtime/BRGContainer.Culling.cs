@@ -5,6 +5,7 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Jobs.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -12,11 +13,6 @@ namespace BRGContainer.Runtime
 {
     public partial class BRGContainer
     {
-        private unsafe JobHandle TempCullingCallback(BatchRendererGroup rendererGroup, BatchCullingContext cullingContext)
-        {
-            return new JobHandle();
-        }
-        
         // [BurstCompile]
         private unsafe JobHandle CullingCallback(BatchRendererGroup rendererGroup, BatchCullingContext cullingContext,
             BatchCullingOutput cullingOutput, IntPtr userContext)
@@ -27,6 +23,8 @@ namespace BRGContainer.Runtime
 
         private const bool _forceJobFence = false; //default : false
         private const bool _useMainCameraCulling = true; //default : true
+
+        private static float3 commonExtents = new float3(2, 2, 2);
         
         private unsafe JobHandle CullingParallel(BatchRendererGroup rendererGroup, BatchCullingContext cullingContext,
             BatchCullingOutput cullingOutput, IntPtr userContext)
@@ -49,18 +47,20 @@ namespace BRGContainer.Runtime
             }
             
             NativeArray<int> visibleInstanceCount = new NativeArray<int>(batchGroups.Length, Allocator.TempJob); //assume each batch only has one window 
-            NativeArray<int> visibleIndices = new NativeArray<int>(batchGroups.Length * 20 * 1, Allocator.TempJob); //assume each batch only has one window
+            // NativeArray<int> visibleIndices = new NativeArray<int>(batchGroups.Length * 20 * 1, Allocator.TempJob); //assume each batch only has one window
 
             var offset = 0;
             var batchJobHandles = stackalloc JobHandle[batchGroups.Length];
             for (var batchGroupIndex = 0; batchGroupIndex < batchGroups.Length; batchGroupIndex++)
             {
-                var batchGroup = batchGroups[batchGroupIndex];
+                BatchGroup batchGroup = batchGroups[batchGroupIndex];
+                BatchID batchID = batchGroup[0];
 
                 var maxInstancePerWindow = batchGroup.m_BatchDescription.MaxInstancePerWindow;
                 var windowCount = batchGroup.GetWindowCount();
                 windowCount = 1; // assume window count is always 1.
-                var objectToWorld = batchGroup.GetO2WArrayPtr();
+                var positions = batchGroup.PositionsPtr;
+                var visibleIndices = batchGroup.VisiblesPtr;
 
                 JobHandle batchHandle = default;
                 for (var batchIndex = 0; batchIndex < windowCount; batchIndex++)
@@ -84,7 +84,8 @@ namespace BRGContainer.Runtime
                     var cullingBatchInstancesJob = new CullingBatchInstancesJob
                     {
                         CullingPlanes = cullingPlanes,
-                        ObjectToWorldPtr = objectToWorld,
+                        Positions = positions,
+                        Extents = commonExtents, //@TODO: temp code, need HISMAABB
                         VisibleInstanceCount = visibleInstanceCount,
                         VisibleIndices = visibleIndices,
                         DataOffset = maxInstancePerWindow * batchIndex,
@@ -99,7 +100,6 @@ namespace BRGContainer.Runtime
             }
 
             var cullingHandle = JobHandleUnsafeUtility.CombineDependencies(batchJobHandles, batchGroups.Length);
-            // cullingHandle = visibleInstanceCount.Dispose(cullingHandle);
             if (_forceJobFence) cullingHandle.Complete();
 
             var drawCounters = new NativeArray<int>(3, Allocator.TempJob);
@@ -163,7 +163,7 @@ namespace BRGContainer.Runtime
             {
                 BatchGroups = batchGroups,
                 VisibleCountPerBatch = visibleInstanceCount,
-                VisibleIndices = visibleIndices,
+                // VisibleIndices = visibleIndices,
                 DrawRangesData = drawRangeData,
                 OutputDrawCommands = drawCommands
             };
@@ -174,7 +174,7 @@ namespace BRGContainer.Runtime
             resultHandle = JobHandle.CombineDependencies(drawRangeData.Dispose(resultHandle), batchGroups.Dispose(resultHandle));
             resultHandle = cullingPlanes.Dispose(resultHandle);
             resultHandle = visibleInstanceCount.Dispose(resultHandle);
-            resultHandle = visibleIndices.Dispose(resultHandle);
+            // resultHandle = visibleIndices.Dispose(resultHandle);
             if (_forceJobFence) resultHandle.Complete();
 
 

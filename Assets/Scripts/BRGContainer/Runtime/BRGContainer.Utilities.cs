@@ -18,8 +18,7 @@ namespace BRGContainer.Runtime
             return new GraphicsBuffer(target, count, stride);
         }
 
-        private BatchGroup CreateBatchGroup(ref BatchDescription batchDescription, ref BatchRendererData rendererData, GraphicsBufferHandle graphicsBufferHandle,
-            Allocator allocator)
+        private BatchGroup CreateBatchGroup(ref BatchDescription batchDescription, ref BatchRendererData rendererData, GraphicsBufferHandle graphicsBufferHandle, Allocator allocator)
         {
             var batchGroup = new BatchGroup(ref batchDescription, rendererData, allocator);
             batchGroup.Register(m_BatchRendererGroup, graphicsBufferHandle);
