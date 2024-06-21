@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace BRGContainer.Runtime
+﻿namespace BRGContainer.Runtime
 {
     using System;
     using System.Runtime.InteropServices;
@@ -43,11 +41,7 @@ namespace BRGContainer.Runtime
                 var visibleCountPerBatch = VisibleCountPerBatch[batchIndex];
                 if (visibleCountPerBatch == 0) // there is no any visible instances for this batch
                     continue;
-                
-                //sven test
-                // int size = 20;
-                // int offset = batchIndex * size;
-                // UnsafeUtility.MemCpy((void*)((IntPtr) OutputDrawCommands->visibleInstances + visibleOffset * UnsafeUtility.SizeOf<int>()), (int*)VisibleIndices.GetUnsafeReadOnlyPtr() + offset, visibleCountPerBatch * UnsafeUtility.SizeOf<int>());
+
                 UnsafeUtility.MemCpy((void*)((IntPtr) OutputDrawCommands->visibleInstances + visibleOffset * UnsafeUtility.SizeOf<int>()), visibleIndices, visibleCountPerBatch * UnsafeUtility.SizeOf<int>());
 
                 visibleOffset += visibleCountPerBatch;

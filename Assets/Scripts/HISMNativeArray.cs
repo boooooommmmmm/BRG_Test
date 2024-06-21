@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using BRGContainer.Runtime;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
@@ -509,6 +510,16 @@ public unsafe class HISMNativeArray<T> : System.IDisposable where T : unmanaged
         AutoResize(listCount + 1, Num() + 8);
         data[listCount] = value;
         listCount += 1;
+    }
+
+    [BRGMethodThreadUnsafe]
+    public void Remove(int index)
+    {
+        int remainLength = listCount - index - 1;
+        var temp = UnsafeUtility.Malloc(UnsafeUtility.SizeOf<T>() * remainLength, UnsafeUtility.AlignOf<T>(), Allocator.Temp);
+        UnsafeUtility.MemCpy(UnsafeUtility.AddressOf(ref data[index]), temp, UnsafeUtility.SizeOf<T>() * remainLength);
+        UnsafeUtility.Free(temp, Allocator.Temp);
+        listCount--;
     }
 
     public void Append(in HISMNativeArray<T> src)

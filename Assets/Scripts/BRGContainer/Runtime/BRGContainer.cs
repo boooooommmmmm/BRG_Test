@@ -99,6 +99,51 @@ namespace BRGContainer.Runtime
             return m_Groups[id];
         }
 
+        public bool ExtendInstanceCount(ref BatchHandle batchHandle, int addCount)
+        {
+            BatchID batchID = batchHandle.m_BatchId;
+            int currentCount = m_Groups[batchID].InstanceCount;
+            int targetCount = currentCount + addCount;
+            int maxCount = m_Groups[batchID].m_BatchDescription.MaxInstanceCount;
+            if (maxCount >= targetCount)
+            {
+                
+                // var _temp =  m_Groups[batchID];
+                // _temp.SetInstanceCount(targetCount);
+                // m_Groups[batchID] = _temp;
+
+                return false;
+            }
+            else
+            {
+                ResizeBatchBuffers(ref batchID, targetCount);
+                BatchHandle newBatchHandle =default;
+                batchHandle = newBatchHandle;
+                return true;
+            }
+            
+        }
+
+        private void ResizeBatchBuffers(ref BatchID batchID, int targetCount)
+        {
+            targetCount = math.ceilpow2(targetCount);
+            // BatchGroup batchGroup = GetBatchGroup(batchID);
+            // batchGroup.Resize(targetCount);
+            m_Groups[batchID].Resize(targetCount);
+            
+            GraphicsBuffer graphicsBuffer = m_GraphicsBuffers[batchID];
+            graphicsBuffer.Release();
+            m_GraphicsBuffers[batchID] = CreateGraphicsBuffer(BatchDescription.IsUBO, m_Groups[batchID].m_BatchDescription.TotalBufferSize);
+        }
+
+        public unsafe void UpdateBatchHandle(ref BatchHandle batchHandle)
+        {
+            BatchDescription batchDescription = batchHandle.Description;
+            BatchID batchID = batchHandle.m_BatchId;
+            BatchGroup batchGroup = GetBatchGroup(batchID);
+            batchHandle = new BatchHandle(m_ContainerId, batchID, batchGroup.GetNativeBuffer(), batchGroup.m_InstanceCount, ref batchDescription);
+        }
+
         public void Dispose()
         {
             foreach (var group in m_Groups)

@@ -17,10 +17,10 @@
                 if (!m_BatchDescription.IsCreated)
                     return null;
                 
-                var array = new MetadataValue[m_BatchDescription.Length];
+                var array = new MetadataValue[m_BatchDescription.MetadataLength];
                 var gcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
                 UnsafeUtility.MemCpy((void*)gcHandle.AddrOfPinnedObject(), m_BatchDescription.AsNativeArray().GetUnsafePtr(), 
-                    UnsafeUtility.SizeOf<BatchID>() * m_BatchDescription.Length);
+                    UnsafeUtility.SizeOf<BatchID>() * m_BatchDescription.MetadataLength);
                 gcHandle.Free();
                 return array;
             }

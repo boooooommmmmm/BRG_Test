@@ -30,6 +30,7 @@
         public bool IsCreated => isCreated;
         public bool IsAlive => IsCreated && CheckIfIsAlive(m_ContainerId, m_BatchId);
         public unsafe int InstanceCount => (IntPtr)m_InstanceCount == IntPtr.Zero ? 0 : *m_InstanceCount;
+        public BatchDescription Description => m_Description;
 
         // [ExcludeFromBurstCompatTesting("BatchHandle creating is unburstable")]
         internal unsafe BatchHandle(ContainerID containerId, BatchID batchId, NativeArray<float4> buffer, int* instanceCount, ref BatchDescription description)
@@ -39,7 +40,7 @@
             
             m_Buffer = buffer;
             m_InstanceCount = instanceCount;
-            m_Description = description;
+            m_Description = description; //copy ctor
             
             isCreated = true;
         }
@@ -91,7 +92,7 @@
             var windowOffsetInFloat4 = lastBatchId * m_Description.AlignedWindowSize / 16;
 
             var offset = 0;
-            for (var i = 0; i < m_Description.Length; i++)
+            for (var i = 0; i < m_Description.MetadataLength; i++)
             {
                 var metadataValue = m_Description[i];
                 var metadataInfo = m_Description.GetMetadataInfo(metadataValue.NameID);
@@ -126,6 +127,7 @@
             Destroy(m_ContainerId, m_BatchId);
         }
         
+        // update graphics buffers (GPU buffer)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Upload(ContainerID containerId, BatchID batchId, NativeArray<float4> data, int nativeBufferStartIndex, int graphicsBufferStartIndex, int count)
         {

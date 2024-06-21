@@ -1,4 +1,6 @@
-﻿namespace BRGContainer.Runtime
+﻿using Unity.Mathematics;
+
+namespace BRGContainer.Runtime
 {
     using System;
     using System.Collections;
@@ -15,7 +17,7 @@
 
     [StructLayout(LayoutKind.Sequential)]
     [DebuggerTypeProxy(typeof(BatchDescriptionDebugView))]
-    [DebuggerDisplay("MaxInstancePerWindow = {MaxInstancePerWindow}, WindowCount = {WindowCount}, Length = {Length}, IsCreated = {IsCreated}")]
+    [DebuggerDisplay("MaxInstancePerWindow = {MaxInstancePerWindow}, WindowCount = {WindowCount}, Length = {MetadataLength}, IsCreated = {IsCreated}")]
     public struct BatchDescription : IEnumerable<MetadataValue>, INativeDisposable
     {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
@@ -46,7 +48,7 @@
         public readonly unsafe bool IsCreated => (IntPtr)m_MetadataValues != IntPtr.Zero && 
                                                  (IntPtr)m_MetadataInfoMap != IntPtr.Zero;
 
-        public readonly int Length;
+        public readonly int MetadataLength;
 
         public readonly int MaxInstanceCount;
         public readonly int SizePerInstance;
@@ -58,11 +60,17 @@
         public readonly int TotalBufferSize;
 
         // [ExcludeFromBurstCompatTesting("BatchDescription creating is unburstable")]
-        public unsafe BatchDescription(ref BatchDescription batchDescription, Allocator allocator)
+        public unsafe BatchDescription(ref BatchDescription batchDescription, Allocator allocator, int newSize = -1)
         {
-            MaxInstanceCount = batchDescription.MaxInstanceCount;
+            if (IsUBO)
+                throw new Exception("Not support!");
+            if (newSize != -1 && (newSize < batchDescription.MaxInstanceCount))
+                throw new Exception("Not support!");
+            
+            // MaxInstanceCount = batchDescription.MaxInstanceCount;
+            MaxInstanceCount = newSize;
             m_Allocator = allocator;
-            Length = batchDescription.Length;
+            MetadataLength = batchDescription.MetadataLength;
             
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             m_Safety = m_Allocator == Allocator.Temp ? AtomicSafetyHandle.GetTempMemoryHandle() : AtomicSafetyHandle.Create();
@@ -78,20 +86,31 @@
                 UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
                 m_Allocator);
             
-            *m_MetadataValues = new UnsafeList<MetadataValue>(Length, m_Allocator);
+            *m_MetadataValues = new UnsafeList<MetadataValue>(MetadataLength, m_Allocator);
             (*m_MetadataValues).CopyFrom(*batchDescription.m_MetadataValues);
-            *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(Length, m_Allocator);
+            *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(MetadataLength, m_Allocator);
             foreach (var pair in *batchDescription.m_MetadataInfoMap)
             {
                 (*m_MetadataInfoMap).Add(pair.Key, pair.Value);
             }
 
             SizePerInstance = batchDescription.SizePerInstance;
-            AlignedWindowSize = batchDescription.AlignedWindowSize;
-            MaxInstancePerWindow = batchDescription.MaxInstancePerWindow;
-            WindowCount = batchDescription.WindowCount;
-            WindowSize = batchDescription.WindowSize;
-            TotalBufferSize = batchDescription.TotalBufferSize;
+            if (newSize == -1)
+            {
+                AlignedWindowSize = batchDescription.AlignedWindowSize;
+                MaxInstancePerWindow = batchDescription.MaxInstancePerWindow;
+                WindowCount = batchDescription.WindowCount;
+                WindowSize = batchDescription.WindowSize;
+                TotalBufferSize = batchDescription.TotalBufferSize;
+            }
+            else
+            {
+                AlignedWindowSize = (MaxInstanceCount * SizePerInstance + 15) & -16;;
+                MaxInstancePerWindow = MaxInstanceCount;
+                WindowCount = 1;
+                WindowSize = 0u;
+                TotalBufferSize = WindowCount * AlignedWindowSize;
+            }
         }
 
         // [ExcludeFromBurstCompatTesting("BatchDescription creating is unburstable")]
@@ -99,7 +118,7 @@
         {
             MaxInstanceCount = maxInstanceCount;
             m_Allocator = allocator;
-            Length = 2;
+            MetadataLength = 2;
             
             #if ENABLE_UNITY_COLLECTIONS_CHECKS
             m_Safety = allocator == Allocator.Temp ? AtomicSafetyHandle.GetTempMemoryHandle() : AtomicSafetyHandle.Create();
@@ -115,8 +134,8 @@
                 UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
                 allocator);
             
-            *m_MetadataValues = new UnsafeList<MetadataValue>(Length, allocator);
-            *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(Length, allocator);
+            *m_MetadataValues = new UnsafeList<MetadataValue>(MetadataLength, allocator);
+            *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(MetadataLength, allocator);
 
             SizePerInstance = UnsafeUtility.SizeOf<PackedMatrix>() * 2;
 
@@ -124,14 +143,14 @@
             {
                 AlignedWindowSize = BatchRendererGroup.GetConstantBufferMaxWindowSize();
                 MaxInstancePerWindow = AlignedWindowSize / SizePerInstance;
-                WindowCount = (maxInstanceCount + MaxInstancePerWindow - 1) / MaxInstancePerWindow;
+                WindowCount = (MaxInstanceCount + MaxInstancePerWindow - 1) / MaxInstancePerWindow;
                 WindowSize = (uint) AlignedWindowSize;
                 TotalBufferSize = WindowCount * AlignedWindowSize;
             }
             else
             {
-                AlignedWindowSize = (maxInstanceCount * SizePerInstance + 15) & -16;
-                MaxInstancePerWindow = maxInstanceCount;
+                AlignedWindowSize = (MaxInstanceCount * SizePerInstance + 15) & -16;
+                MaxInstancePerWindow = MaxInstanceCount;
                 WindowCount = 1;
                 WindowSize = 0u;
                 TotalBufferSize = WindowCount * AlignedWindowSize;
@@ -145,9 +164,9 @@
         // [ExcludeFromBurstCompatTesting("BatchDescription creating is unburstable")]
         public unsafe BatchDescription(int maxInstanceCount, NativeArray<MaterialProperty> materialProperties, Allocator allocator)
         {
-            MaxInstanceCount = maxInstanceCount;
+            MaxInstanceCount = math.ceilpow2(maxInstanceCount);
             m_Allocator = allocator;
-            Length = materialProperties.Length + 2;
+            MetadataLength = materialProperties.Length + 2;
             
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             m_Safety = allocator == Allocator.Temp ? AtomicSafetyHandle.GetTempMemoryHandle() : AtomicSafetyHandle.Create();
@@ -163,8 +182,8 @@
                 UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
                 allocator);
             
-            *m_MetadataValues = new UnsafeList<MetadataValue>(Length, allocator);
-            *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(Length, allocator);
+            *m_MetadataValues = new UnsafeList<MetadataValue>(MetadataLength, allocator);
+            *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(MetadataLength, allocator);
 
             SizePerInstance = UnsafeUtility.SizeOf<PackedMatrix>() * 2; //o2w, w2o
             for (var i = 0; i < materialProperties.Length; i++)
@@ -177,14 +196,14 @@
             {
                 AlignedWindowSize = BatchRendererGroup.GetConstantBufferMaxWindowSize();
                 MaxInstancePerWindow = AlignedWindowSize / SizePerInstance;
-                WindowCount = (maxInstanceCount + MaxInstancePerWindow - 1) / MaxInstancePerWindow;
+                WindowCount = (MaxInstanceCount + MaxInstancePerWindow - 1) / MaxInstancePerWindow;
                 WindowSize = (uint) AlignedWindowSize;
                 TotalBufferSize = WindowCount * AlignedWindowSize;
             }
             else
             {
-                AlignedWindowSize = (maxInstanceCount * SizePerInstance + 15) & -16;
-                MaxInstancePerWindow = maxInstanceCount;
+                AlignedWindowSize = (MaxInstanceCount * SizePerInstance + 15) & -16;
+                MaxInstancePerWindow = MaxInstanceCount;
                 WindowCount = 1;
                 WindowSize = 0u;
                 TotalBufferSize = WindowCount * AlignedWindowSize;
@@ -327,6 +346,11 @@
             return new BatchDescription(ref batchDescription, allocator);
         }
         
+        public static BatchDescription CopyWithResize(ref BatchDescription batchDescription, int newSize)
+        {
+            return new BatchDescription(ref batchDescription, batchDescription.m_Allocator, newSize);
+        }
+        
         private unsafe void RegisterMetadata(int sizeInBytes, int propertyId, ref int metadataOffset, bool isPerInstance = true)
         {
             var metadataInfo = new MetadataInfo(sizeInBytes, metadataOffset, propertyId, isPerInstance);
@@ -372,7 +396,7 @@
             public bool MoveNext()
             {
                 ++m_Index;
-                return m_Index < m_BatchDescription.Length;
+                return m_Index < m_BatchDescription.MetadataLength;
             }
 
             public void Reset()

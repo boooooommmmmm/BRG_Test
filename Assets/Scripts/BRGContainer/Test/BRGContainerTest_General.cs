@@ -17,7 +17,7 @@ namespace BRGContainer.Test
     using Random = UnityEngine.Random;
 
 
-    public partial class BRGContainerTest : MonoBehaviour
+    public partial class BRGContainerTest_General : MonoBehaviour
     {
         [Serializable]
         public struct BRGData

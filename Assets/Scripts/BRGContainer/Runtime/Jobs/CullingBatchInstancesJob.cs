@@ -52,10 +52,7 @@ namespace BRGContainer.Runtime
                     return;
             }
 
-            // sven test
             int count = Interlocked.Increment(ref UnsafeUtility.ArrayElementAsRef<int>(VisibleInstanceCount.GetUnsafePtr(), BatchGroupIndex));
-            // int offset = BatchGroupIndex * 20;
-            // VisibleIndices[offset + count - 1] = index;
             VisibleIndices[count - 1] = index;
         }
     }
