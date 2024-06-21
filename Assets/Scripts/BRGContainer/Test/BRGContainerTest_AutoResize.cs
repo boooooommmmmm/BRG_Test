@@ -96,6 +96,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
 
     private void AddItem(int currentCount, int targetCount)
     {
+        
         int addCount = targetCount - currentCount;
         float3[] _targetPos = new float3[addCount];
 
@@ -106,20 +107,20 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
             _targetPos[i - currentCount] = new float3(0, 0, dis * sign);
         }
 
-        var dataBuffer = m_BatchHandles.AsInstanceDataBuffer();
-        if (m_BatchHandles.InstanceCount < m_BatchHandles.Description.MaxInstanceCount)
+
+        bool needUpdateBatchHandle = m_BRGContainer.ExtendInstanceCount(ref m_BatchHandles, addCount);
+        if (needUpdateBatchHandle)
         {
-            dataBuffer.SetInstanceCount(targetCount);
+            m_BRGContainer.UpdateBatchHandle(ref m_BatchHandles);
+        }
+        else
+        {
         }
 
+        var dataBuffer = m_BatchHandles.AsInstanceDataBuffer();
+        dataBuffer.SetInstanceCount(targetCount);
 
-        // bool needUpdateBatchHandle = m_BRGContainer.ExtendInstanceCount(ref m_BatchHandles, addCount);
-        // if (needUpdateBatchHandle)
-        // {
-        //     m_BRGContainer.UpdateBatchHandle(ref m_BatchHandles);
-        // }
-        
-        // BatchGroup batchGroup = m_BRGContainer.GetBatchGroup(m_BatchHandles.m_BatchId);
+        BatchGroup batchGroup = m_BRGContainer.GetBatchGroup(m_BatchHandles.m_BatchId);
 
         for (var i = 0; i < addCount; i++)
         {
@@ -128,12 +129,12 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
             var position = _targetPos[i];
             var rotation = Quaternion.identity;
 
-            // dataBuffer.SetTRS(index, position, rotation, Vector3.one);
-            // dataBuffer.SetColor(index, m_BaseColorPropertyId, UnityEngine.Random.ColorHSV());
-            // batchGroup.SetPosition(index, position);
+            dataBuffer.SetTRS(index, position, rotation, Vector3.one);
+            dataBuffer.SetColor(index, m_BaseColorPropertyId, UnityEngine.Random.ColorHSV());
+            batchGroup.SetPosition(index, position);
         }
 
-        // m_BatchHandles.Upload();
+        m_BatchHandles.Upload();
     }
 
     private void OnDestroy()

@@ -79,6 +79,18 @@ namespace BRGContainer.Runtime
             return new BatchHandle(m_ContainerId, batchId, batchGroup.GetNativeBuffer(), batchGroup.m_InstanceCount, ref batchDescription);
         }
 
+        public unsafe BatchHandle AddBatch(ref BatchGroup batchGroup, ref BatchDescription batchDescription, GraphicsBuffer graphicsBuffer)
+        {
+            // GraphicsBuffer graphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, batchDescription.TotalBufferSize);
+            batchGroup.Register(m_BatchRendererGroup, graphicsBuffer.bufferHandle);
+            
+            BatchID batchId = batchGroup[0];
+            m_GraphicsBuffers.Add(batchId, graphicsBuffer);
+            m_Groups.Add(batchId, batchGroup);
+
+            return new BatchHandle(m_ContainerId, batchId, batchGroup.GetNativeBuffer(), batchGroup.m_InstanceCount, ref batchDescription);
+        }
+
 
         public void RemoveBatch(in BatchHandle batchHandle)
         {
@@ -107,33 +119,36 @@ namespace BRGContainer.Runtime
             int maxCount = m_Groups[batchID].m_BatchDescription.MaxInstanceCount;
             if (maxCount >= targetCount)
             {
-                
-                // var _temp =  m_Groups[batchID];
-                // _temp.SetInstanceCount(targetCount);
-                // m_Groups[batchID] = _temp;
-
+                // need reset instance count in dataBuffer via logic in BatchHanle.
                 return false;
             }
             else
             {
-                ResizeBatchBuffers(ref batchID, targetCount);
-                BatchHandle newBatchHandle =default;
-                batchHandle = newBatchHandle;
+                batchHandle = ResizeBatchBuffers(ref batchID, targetCount);
                 return true;
             }
-            
         }
 
-        private void ResizeBatchBuffers(ref BatchID batchID, int targetCount)
+        private BatchHandle ResizeBatchBuffers(ref BatchID batchID, int targetCount)
         {
             targetCount = math.ceilpow2(targetCount);
-            // BatchGroup batchGroup = GetBatchGroup(batchID);
-            // batchGroup.Resize(targetCount);
-            m_Groups[batchID].Resize(targetCount);
             
+            BatchGroup batchGroup = GetBatchGroup(batchID);
+            BatchDescription newBatchDescription = BatchDescription.CopyWithResize(ref batchGroup.m_BatchDescription, targetCount);
+            BatchGroup newBatchGroup = new BatchGroup(ref batchGroup, ref newBatchDescription); 
+            
+            GraphicsBuffer newGraphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, newBatchDescription.TotalBufferSize);
             GraphicsBuffer graphicsBuffer = m_GraphicsBuffers[batchID];
-            graphicsBuffer.Release();
-            m_GraphicsBuffers[batchID] = CreateGraphicsBuffer(BatchDescription.IsUBO, m_Groups[batchID].m_BatchDescription.TotalBufferSize);
+            
+            var target = BatchDescription.IsUBO ? GraphicsBuffer.Target.Constant : GraphicsBuffer.Target.Raw;
+            int bufferSize = newBatchDescription.TotalBufferSize;
+            var count = BatchDescription.IsUBO ? bufferSize / 16 : bufferSize / 4;
+            var stride = BatchDescription.IsUBO ? 16 : 4;
+            // Graphics.CopyBuffer(graphicsBuffer, newGraphicsBuffer);
+            // GraphicsBuffer.CopyCount(graphicsBuffer, newGraphicsBuffer, 0);
+            
+            DestroyBatch(m_ContainerId, batchID, true);
+            return AddBatch(ref newBatchGroup, ref newBatchDescription, newGraphicsBuffer);
         }
 
         public unsafe void UpdateBatchHandle(ref BatchHandle batchHandle)
@@ -148,7 +163,7 @@ namespace BRGContainer.Runtime
         {
             foreach (var group in m_Groups)
             {
-                group.Value.Unregister(m_BatchRendererGroup);
+                group.Value.Unregister(m_BatchRendererGroup, false);
                 group.Value.Dispose();
             }
 
@@ -171,7 +186,7 @@ namespace BRGContainer.Runtime
             container.m_GraphicsBuffers[batchID].SetData(data, nativeBufferStartIndex, graphicsBufferStartIndex, count);
         }
 
-        internal static void DestroyBatch(ContainerID containerID, BatchID batchID)
+        internal static void DestroyBatch(ContainerID containerID, BatchID batchID, bool onlyRemoveBatch = false)
         {
             if (!m_Containers.TryGetValue(containerID, out var container))
                 return;
@@ -179,7 +194,7 @@ namespace BRGContainer.Runtime
             if (container.m_Groups.TryGetValue(batchID, out var batchGroup))
             {
                 container.m_Groups.Remove(batchID);
-                batchGroup.Unregister(container.m_BatchRendererGroup);
+                batchGroup.Unregister(container.m_BatchRendererGroup, onlyRemoveBatch);
                 batchGroup.Dispose();
             }
 
