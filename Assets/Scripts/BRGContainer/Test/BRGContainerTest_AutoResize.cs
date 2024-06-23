@@ -111,7 +111,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
         bool needUpdateBatchHandle = m_BRGContainer.ExtendInstanceCount(ref m_BatchHandles, addCount);
         if (needUpdateBatchHandle)
         {
-            m_BRGContainer.UpdateBatchHandle(ref m_BatchHandles);
+            //m_BRGContainer.UpdateBatchHandle(ref m_BatchHandles);
         }
         else
         {

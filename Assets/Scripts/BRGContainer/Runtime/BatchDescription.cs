@@ -68,6 +68,7 @@ namespace BRGContainer.Runtime
                 throw new Exception("Not support!");
             
             // MaxInstanceCount = batchDescription.MaxInstanceCount;
+            int lastMaxInstanceCount = batchDescription.MaxInstanceCount;
             MaxInstanceCount = newSize;
             m_Allocator = allocator;
             MetadataLength = batchDescription.MetadataLength;
@@ -87,12 +88,47 @@ namespace BRGContainer.Runtime
                 m_Allocator);
             
             *m_MetadataValues = new UnsafeList<MetadataValue>(MetadataLength, m_Allocator);
-            (*m_MetadataValues).CopyFrom(*batchDescription.m_MetadataValues);
+            // (*m_MetadataValues).CopyFrom(*batchDescription.m_MetadataValues);
             *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(MetadataLength, m_Allocator);
-            foreach (var pair in *batchDescription.m_MetadataInfoMap)
+            // foreach (var pair in *batchDescription.m_MetadataInfoMap)
+            // {
+            //     (*m_MetadataInfoMap).Add(pair.Key, pair.Value);
+            // }
+            // int metadataOffset = 0;
+            // foreach (var pair in *batchDescription.m_MetadataInfoMap)
+            // {
+            //     var metaInfo = pair.Value;
+            //     RegisterMetadata(metaInfo.Size, metaInfo.PropertyId, ref metadataOffset, metaInfo.IsPerInstance);
+            // }
+            for (int i = 0; i < MetadataLength; i++)
             {
-                (*m_MetadataInfoMap).Add(pair.Key, pair.Value);
+                MetadataValue oldValue = batchDescription[i];
+                MetadataInfo oldInfo = batchDescription.GetMetadataInfo(oldValue.NameID);
+                int offset = oldInfo.Offset * (MaxInstanceCount / lastMaxInstanceCount);
+                MetadataInfo info = new MetadataInfo(oldInfo.Size, offset, oldInfo.PropertyId, oldInfo.IsPerInstance);
+                MetadataValue value = new MetadataValue()
+                {
+                    NameID = oldInfo.PropertyId, 
+                    Value = (uint)offset | (oldInfo.IsPerInstance ? PerInstanceBit : 0u)
+                };
+                m_MetadataValues->Add(value);
+                m_MetadataInfoMap->Add(info.PropertyId, info);
             }
+            // foreach (var pair in *batchDescription.m_MetadataInfoMap)
+            // {
+            //     int offset = pair.Value.Offset * (MaxInstanceCount / lastMaxInstanceCount);
+            //     MetadataInfo info = new MetadataInfo(pair.Value.Size, offset, pair.Value.PropertyId, pair.Value.IsPerInstance);
+            //     MetadataValue value = new MetadataValue()
+            //     {
+            //         NameID = pair.Value.PropertyId, 
+            //         Value = (uint)offset | (pair.Value.IsPerInstance ? PerInstanceBit : 0u)
+            //     };
+            //     
+            //     m_MetadataValues->Add(value);
+            //     m_MetadataInfoMap->Add(pair.Value.PropertyId, info);
+            // }
+            
+
 
             SizePerInstance = batchDescription.SizePerInstance;
             if (newSize == -1)

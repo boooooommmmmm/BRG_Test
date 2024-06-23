@@ -114,10 +114,16 @@ namespace BRGContainer.Runtime
                 UnsafeUtility.AlignOf<int>(), m_Allocator);
 
 
-            // UnsafeUtility.MemCpy(m_DataBuffer, _batchGroup.m_DataBuffer, s_SizeOfFloat4 * lastMaxCount * 7);
+            NativeArray<float4> array = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<float4>(_batchGroup.m_DataBuffer, _batchGroup.m_BufferLength, m_Allocator);
+            
+            UnsafeUtility.MemCpy(m_DataBuffer, _batchGroup.m_DataBuffer, s_SizeOfFloat4 * lastMaxCount * 3);
+            UnsafeUtility.MemCpy(m_DataBuffer + currentMaxCount * 3, _batchGroup.m_DataBuffer + lastMaxCount * 3, lastMaxCount * s_SizeOfFloat4 * 3);
+            UnsafeUtility.MemCpy(m_DataBuffer + currentMaxCount * 3 * 2, _batchGroup.m_DataBuffer + lastMaxCount * 3 * 2, lastMaxCount * s_SizeOfFloat4 * 1);
             // UnsafeUtility.MemCpy(m_DataBuffer + currentMaxCount * s_SizeOfFloat4 * 3, _batchGroup.m_DataBuffer + lastMaxCount * s_SizeOfFloat4 * 3, lastMaxCount * s_SizeOfFloat4 * 3);
             // UnsafeUtility.MemCpy(m_DataBuffer + currentMaxCount * 2 * s_SizeOfFloat4 * 3, _batchGroup.m_DataBuffer + lastMaxCount * 2 * s_SizeOfFloat4 * 3, lastMaxCount * s_SizeOfFloat4 * 1);
-            UnsafeUtility.MemMove(m_DataBuffer, _batchGroup.m_DataBuffer, s_SizeOfFloat4 * lastBufferLength);
+            
+            NativeArray<float4> array2 = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<float4>(m_DataBuffer, m_BufferLength, m_Allocator);
+            // UnsafeUtility.MemMove(m_DataBuffer, _batchGroup.m_DataBuffer, s_SizeOfFloat4 * lastBufferLength);
             UnsafeUtility.MemMove(m_Batches, _batchGroup.m_Batches, s_SizeOfBatchID * lastBufferLength);
             UnsafeUtility.MemMove(m_Positions, _batchGroup.m_Positions, s_SizeOfFloat3 * lastMaxCount);
             UnsafeUtility.MemMove(m_Visibles, _batchGroup.m_Visibles, s_SizeOfInt * lastMaxCount);
