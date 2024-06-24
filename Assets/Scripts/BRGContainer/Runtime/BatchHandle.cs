@@ -1,6 +1,7 @@
 ﻿namespace BRGContainer.Runtime
 {
     using System;
+    using System.Threading;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using Unity.Burst;
@@ -103,6 +104,16 @@
                 Upload(m_ContainerId, m_BatchId, m_Buffer, startIndex, startIndex,
                     itemInLastBatch * sizeInFloat4);
             }
+        }
+
+        public unsafe void SetInstanceCount(int instanceCount)
+        {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            if(instanceCount < 0 || instanceCount > m_Description.MaxInstanceCount)
+                throw new ArgumentOutOfRangeException($"Instance count {instanceCount} out of range from 0 to {m_Description.MaxInstanceCount} (include).");
+#endif
+            
+            Interlocked.Exchange(ref *m_InstanceCount, instanceCount);
         }
         
         /// <summary>

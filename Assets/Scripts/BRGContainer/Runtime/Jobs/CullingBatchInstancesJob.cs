@@ -35,10 +35,10 @@ namespace BRGContainer.Runtime
         public unsafe void Execute(int index)
         {
             uint state = StatePtr[index];
-            int availableMaskPos = 0;
-            uint availableMask = state & (1u << availableMaskPos);
-            bool isAvailable = availableMask > 0u ? true : false;
-            if (!isAvailable)
+            int aliveMaskPos = 0;
+            uint aliveMask = state & (1u << aliveMaskPos);
+            bool isAlive = aliveMask > 0u ? true : false;
+            if (!isAlive)
                 return;
             
             float3 pos = Positions[index];

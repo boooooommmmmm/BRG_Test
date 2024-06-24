@@ -29,7 +29,7 @@ namespace BRGContainer.Runtime
         private static readonly int m_ObjectToWorldPropertyName = Shader.PropertyToID("unity_ObjectToWorld");
         private static readonly int m_WorldToObjectPropertyName = Shader.PropertyToID("unity_WorldToObject");
         
-        private const uint PerInstanceBit = 0x80000000;
+        private const uint PerInstanceBit = 0x80000000; // 4x8 bits: 1000 0000 0000 0000 0000 0000 0000 0000
         public static readonly bool IsUBO = BatchRendererGroup.BufferTarget == BatchBufferTarget.ConstantBuffer;
 
         [NativeDisableUnsafePtrRestriction]

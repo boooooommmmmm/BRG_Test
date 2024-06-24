@@ -27,7 +27,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
 
     private BRGContainer.Runtime.BRGContainer m_BRGContainer;
     private BatchHandle m_BatchHandles;
-    private int availableItemCount = 0;
+    private int aliveItemCount = 0;
 
 
     private void Start()
@@ -50,7 +50,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
             _isAdded = true;
         }
 
-        if (availableItemCount != m_Count)
+        if (aliveItemCount != m_Count)
         {
             OnItemCountChanged();
         }
@@ -59,7 +59,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
 
     private void AddBatch()
     {
-        availableItemCount = m_Count;
+        aliveItemCount = m_Count;
         
         float3[] _targetPos = new float3[m_Count];
 
@@ -96,7 +96,9 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
             dataBuffer.SetTRS(i, position, rotation, Vector3.one);
             dataBuffer.SetColor(i, m_BaseColorPropertyId, UnityEngine.Random.ColorHSV());
             batchGroup.SetPosition(i, position);
-            batchGroup.SetAvailable(i, true);
+            batchGroup.SetAlive(i, true);
+            
+            // Debug.LogError("SetAlive: " + i);
         }
 
 
@@ -105,16 +107,16 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
 
     private void OnItemCountChanged()
     {
-        if (m_Count > availableItemCount)
+        if (m_Count > aliveItemCount)
         {
-            AddItem(availableItemCount, m_Count);
-            availableItemCount = m_Count;
+            AddItem(aliveItemCount, m_Count);
+            aliveItemCount = m_Count;
         }
-        else if (m_Count < availableItemCount)
+        else if (m_Count < aliveItemCount)
         {
-            int removeCount = availableItemCount - m_Count;
+            int removeCount = aliveItemCount - m_Count;
             RemoveItem(removeCount);
-            availableItemCount -= removeCount;
+            aliveItemCount -= removeCount;
         }
     }
     
@@ -126,36 +128,40 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
     private void AddItem(int currentCount, int targetCount)
     {
         int addCount = targetCount - currentCount;
-        int currentInstanceCount = m_BatchHandles.InstanceCount;
-        int targetInstanceCount = currentInstanceCount + addCount;
-        
-        float3[] _targetPos = new float3[addCount];
-        for (int i = currentInstanceCount, index = 0; i < targetInstanceCount; i++, index++)
-        {
-            int dis = (i + 1) / 2 * 2;
-            int sign = (i & 2) == 0 ? 1 : -1;
-            _targetPos[index] = new float3(0, 0, dis * sign);
-        }
-
-
-        bool batchHandleChanged = m_BRGContainer.ExtendInstanceCount(ref m_BatchHandles, addCount);
-
-        var dataBuffer = m_BatchHandles.AsInstanceDataBuffer();
-        dataBuffer.SetInstanceCount(targetInstanceCount);
-
         BatchGroup batchGroup = m_BRGContainer.GetBatchGroup(m_BatchHandles.m_BatchId);
 
-        for (var i = 0; i < addCount; i++)
+        for (int i = 1; i <= addCount; i++)
         {
-            int index = currentInstanceCount + i;
-            var currentTransform = transform;
-            var position = _targetPos[i];
-            var rotation = Quaternion.identity;
+            (int index, EGetNextAliveIndexInfo info) = batchGroup.GetNextAliveIndex();
 
-            dataBuffer.SetTRS(index, position, rotation, Vector3.one);
+            float3 targetPos = float3.zero;
+            var rotation = Quaternion.identity;
+            if (info == EGetNextAliveIndexInfo.None)
+            {
+            }
+            else if (info == EGetNextAliveIndexInfo.NeedExtentInstanceCount)
+            {
+                bool batchHandleChanged = m_BRGContainer.ExtendInstanceCount(ref m_BatchHandles, 1);
+                m_BatchHandles.SetInstanceCount(currentCount + i);
+            }
+            else if (info == EGetNextAliveIndexInfo.NeedResize)
+            {
+                bool batchHandleChanged = m_BRGContainer.ExtendInstanceCount(ref m_BatchHandles, 1);
+                batchGroup = m_BRGContainer.GetBatchGroup(m_BatchHandles.m_BatchId);
+                m_BatchHandles.SetInstanceCount(currentCount + i);
+                (index, info) = batchGroup.GetNextAliveIndex();
+            }
+            
+            int dis = (index + 1) / 2 * 2;
+            int sign = (index & 2) == 0 ? 1 : -1;
+            targetPos = new float3(0, 0, dis * sign);
+            
+            var dataBuffer = m_BatchHandles.AsInstanceDataBuffer();
+            
+            dataBuffer.SetTRS(index, targetPos, rotation, Vector3.one);
             dataBuffer.SetColor(index, m_BaseColorPropertyId, UnityEngine.Random.ColorHSV());
-            batchGroup.SetPosition(index, position);
-            batchGroup.SetAvailable(index, true);
+            batchGroup.SetPosition(index, targetPos);
+            batchGroup.SetAlive(index, true);
         }
 
         m_BatchHandles.Upload();
@@ -178,7 +184,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
                 }
                 else
                 {
-                    removeIndex = availableItemCount - 1;
+                    removeIndex = aliveItemCount - 1;
                 }
                 removeSuccess = RemoveItemAtIndex(removeIndex);
                 // UnityEngine.Debug.LogError($"remove: {removeIndex}, status: {removeSuccess}");
@@ -189,10 +195,10 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
     private bool RemoveItemAtIndex(int index)
     {
         BatchGroup batchGroup = m_BRGContainer.GetBatchGroup(m_BatchHandles.m_BatchId);
-        if (!batchGroup.IsAvailable(index))
+        if (!batchGroup.IsAlive(index))
             return false;
         else
-            batchGroup.SetAvailable(index, false);
+            batchGroup.SetAlive(index, false);
         return true;
     }
 
