@@ -8,6 +8,12 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Serialization;
+using MaterialProperty = BRGContainer.Runtime.MaterialProperty;
+using Random = Unity.Mathematics.Random;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class BRGContainerTest_AutoResize : MonoBehaviour
 {
@@ -21,6 +27,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
 
     private BRGContainer.Runtime.BRGContainer m_BRGContainer;
     private BatchHandle m_BatchHandles;
+    private int availableItemCount = 0;
 
 
     private void Start()
@@ -42,17 +49,18 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
             AddBatch();
             _isAdded = true;
         }
-        // m_BatchHandles.Upload();
 
-        if (m_Count > m_BatchHandles.InstanceCount)
+        if (availableItemCount != m_Count)
         {
-            AddItem(m_BatchHandles.InstanceCount, m_Count);
+            OnItemCountChanged();
         }
     }
 
 
     private void AddBatch()
     {
+        availableItemCount = m_Count;
+        
         float3[] _targetPos = new float3[m_Count];
 
         for (int i = 0; i < m_Count; i++)
@@ -88,43 +96,58 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
             dataBuffer.SetTRS(i, position, rotation, Vector3.one);
             dataBuffer.SetColor(i, m_BaseColorPropertyId, UnityEngine.Random.ColorHSV());
             batchGroup.SetPosition(i, position);
+            batchGroup.SetAvailable(i, true);
         }
 
 
         batchHandle.Upload();
     }
 
+    private void OnItemCountChanged()
+    {
+        if (m_Count > availableItemCount)
+        {
+            AddItem(availableItemCount, m_Count);
+            availableItemCount = m_Count;
+        }
+        else if (m_Count < availableItemCount)
+        {
+            int removeCount = availableItemCount - m_Count;
+            RemoveItem(removeCount);
+            availableItemCount -= removeCount;
+        }
+    }
+    
+    public void ChangeItemCount(int count = 0)
+    {
+        m_Count += count;
+    }
+
     private void AddItem(int currentCount, int targetCount)
     {
-        
         int addCount = targetCount - currentCount;
+        int currentInstanceCount = m_BatchHandles.InstanceCount;
+        int targetInstanceCount = currentInstanceCount + addCount;
+        
         float3[] _targetPos = new float3[addCount];
-
-        for (int i = currentCount; i < targetCount; i++)
+        for (int i = currentInstanceCount, index = 0; i < targetInstanceCount; i++, index++)
         {
             int dis = (i + 1) / 2 * 2;
             int sign = (i & 2) == 0 ? 1 : -1;
-            _targetPos[i - currentCount] = new float3(0, 0, dis * sign);
+            _targetPos[index] = new float3(0, 0, dis * sign);
         }
 
 
-        bool needUpdateBatchHandle = m_BRGContainer.ExtendInstanceCount(ref m_BatchHandles, addCount);
-        if (needUpdateBatchHandle)
-        {
-            //m_BRGContainer.UpdateBatchHandle(ref m_BatchHandles);
-        }
-        else
-        {
-        }
+        bool batchHandleChanged = m_BRGContainer.ExtendInstanceCount(ref m_BatchHandles, addCount);
 
         var dataBuffer = m_BatchHandles.AsInstanceDataBuffer();
-        dataBuffer.SetInstanceCount(targetCount);
+        dataBuffer.SetInstanceCount(targetInstanceCount);
 
         BatchGroup batchGroup = m_BRGContainer.GetBatchGroup(m_BatchHandles.m_BatchId);
 
         for (var i = 0; i < addCount; i++)
         {
-            int index = currentCount + i;
+            int index = currentInstanceCount + i;
             var currentTransform = transform;
             var position = _targetPos[i];
             var rotation = Quaternion.identity;
@@ -132,15 +155,72 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
             dataBuffer.SetTRS(index, position, rotation, Vector3.one);
             dataBuffer.SetColor(index, m_BaseColorPropertyId, UnityEngine.Random.ColorHSV());
             batchGroup.SetPosition(index, position);
+            batchGroup.SetAvailable(index, true);
         }
 
         m_BatchHandles.Upload();
     }
 
+    private void RemoveItem(int count)
+    {
+        bool isRandomRemove = true;
+
+        int totalCount = m_BatchHandles.InstanceCount;
+        for (int i = 0; i < count; i++)
+        {
+            bool removeSuccess = false;
+            while (!removeSuccess)
+            {
+                int removeIndex = 0;
+                if (isRandomRemove)
+                {
+                    removeIndex = UnityEngine.Random.Range(0, totalCount);
+                }
+                else
+                {
+                    removeIndex = availableItemCount - 1;
+                }
+                removeSuccess = RemoveItemAtIndex(removeIndex);
+                // UnityEngine.Debug.LogError($"remove: {removeIndex}, status: {removeSuccess}");
+            }
+        }
+    }
+
+    private bool RemoveItemAtIndex(int index)
+    {
+        BatchGroup batchGroup = m_BRGContainer.GetBatchGroup(m_BatchHandles.m_BatchId);
+        if (!batchGroup.IsAvailable(index))
+            return false;
+        else
+            batchGroup.SetAvailable(index, false);
+        return true;
+    }
+
     private void OnDestroy()
     {
         m_BatchHandles.Destroy();
-        ;
         m_BRGContainer?.Dispose();
     }
 }
+
+
+#if UNITY_EDITOR
+[CustomEditor(typeof(BRGContainerTest_AutoResize))]
+public class BRGContainerTest_AutoResize_Editor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        base.OnInspectorGUI();
+
+        BRGContainerTest_AutoResize testScript = (BRGContainerTest_AutoResize)target;
+        
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("-"))
+            testScript.ChangeItemCount(-1);
+        if (GUILayout.Button("+"))
+            testScript.ChangeItemCount(1);
+        
+        GUILayout.EndHorizontal();
+    }
+}
+#endif

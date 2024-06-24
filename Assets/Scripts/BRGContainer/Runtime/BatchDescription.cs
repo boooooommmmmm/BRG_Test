@@ -67,7 +67,6 @@ namespace BRGContainer.Runtime
             if (newSize != -1 && (newSize < batchDescription.MaxInstanceCount))
                 throw new Exception("Not support!");
             
-            // MaxInstanceCount = batchDescription.MaxInstanceCount;
             int lastMaxInstanceCount = batchDescription.MaxInstanceCount;
             MaxInstanceCount = newSize;
             m_Allocator = allocator;
@@ -79,27 +78,14 @@ namespace BRGContainer.Runtime
             AtomicSafetyHandle.SetStaticSafetyId(ref m_Safety, m_StaticSafetyId);
 #endif
             
-            m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(
-                UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(),
-                m_Allocator);
-            m_MetadataInfoMap = (UnsafeParallelHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
-                UnsafeUtility.SizeOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
-                UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
-                m_Allocator);
+            m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(), m_Allocator);
+            m_MetadataInfoMap = (UnsafeParallelHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(UnsafeUtility.SizeOf<UnsafeParallelHashMap<int, MetadataInfo>>(), UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(), m_Allocator);
             
             *m_MetadataValues = new UnsafeList<MetadataValue>(MetadataLength, m_Allocator);
             // (*m_MetadataValues).CopyFrom(*batchDescription.m_MetadataValues);
             *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(MetadataLength, m_Allocator);
-            // foreach (var pair in *batchDescription.m_MetadataInfoMap)
-            // {
-            //     (*m_MetadataInfoMap).Add(pair.Key, pair.Value);
-            // }
-            // int metadataOffset = 0;
-            // foreach (var pair in *batchDescription.m_MetadataInfoMap)
-            // {
-            //     var metaInfo = pair.Value;
-            //     RegisterMetadata(metaInfo.Size, metaInfo.PropertyId, ref metadataOffset, metaInfo.IsPerInstance);
-            // }
+
+            // resize metadata configure
             for (int i = 0; i < MetadataLength; i++)
             {
                 MetadataValue oldValue = batchDescription[i];
@@ -114,22 +100,7 @@ namespace BRGContainer.Runtime
                 m_MetadataValues->Add(value);
                 m_MetadataInfoMap->Add(info.PropertyId, info);
             }
-            // foreach (var pair in *batchDescription.m_MetadataInfoMap)
-            // {
-            //     int offset = pair.Value.Offset * (MaxInstanceCount / lastMaxInstanceCount);
-            //     MetadataInfo info = new MetadataInfo(pair.Value.Size, offset, pair.Value.PropertyId, pair.Value.IsPerInstance);
-            //     MetadataValue value = new MetadataValue()
-            //     {
-            //         NameID = pair.Value.PropertyId, 
-            //         Value = (uint)offset | (pair.Value.IsPerInstance ? PerInstanceBit : 0u)
-            //     };
-            //     
-            //     m_MetadataValues->Add(value);
-            //     m_MetadataInfoMap->Add(pair.Value.PropertyId, info);
-            // }
-            
-
-
+  
             SizePerInstance = batchDescription.SizePerInstance;
             if (newSize == -1)
             {

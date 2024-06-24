@@ -47,7 +47,6 @@ namespace BRGContainer.Runtime
             }
             
             NativeArray<int> visibleInstanceCount = new NativeArray<int>(batchGroups.Length, Allocator.TempJob); //assume each batch only has one window 
-            // NativeArray<int> visibleIndices = new NativeArray<int>(batchGroups.Length * 20 * 1, Allocator.TempJob); //assume each batch only has one window
 
             var offset = 0;
             var batchJobHandles = stackalloc JobHandle[batchGroups.Length];
@@ -61,13 +60,12 @@ namespace BRGContainer.Runtime
                 windowCount = 1; // assume window count is always 1.
                 var positions = batchGroup.PositionsPtr;
                 var visibleIndices = batchGroup.VisiblesPtr;
+                uint* statePtr = batchGroup.StatePtr;
 
                 JobHandle batchHandle = default;
                 for (var batchIndex = 0; batchIndex < windowCount; batchIndex++)
                 {
                     var maxInstanceCountPerBatch = batchGroup.GetInstanceCountPerWindow(batchIndex);
-
-                    // var visibleIndices = new NativeArray<int>(maxInstanceCountPerBatch * 1, Allocator.TempJob);
 
                     // setup data
                     // assume window count is always 1. should setup data for each batch, not each window.
@@ -88,6 +86,7 @@ namespace BRGContainer.Runtime
                         Extents = commonExtents, //@TODO: temp code, need HISMAABB
                         VisibleInstanceCount = visibleInstanceCount,
                         VisibleIndices = visibleIndices,
+                        StatePtr = statePtr,
                         DataOffset = maxInstancePerWindow * batchIndex,
                         BatchGroupIndex = batchGroupIndex,
                     };
@@ -163,7 +162,6 @@ namespace BRGContainer.Runtime
             {
                 BatchGroups = batchGroups,
                 VisibleCountPerBatch = visibleInstanceCount,
-                // VisibleIndices = visibleIndices,
                 DrawRangesData = drawRangeData,
                 OutputDrawCommands = drawCommands
             };
@@ -174,7 +172,6 @@ namespace BRGContainer.Runtime
             resultHandle = JobHandle.CombineDependencies(drawRangeData.Dispose(resultHandle), batchGroups.Dispose(resultHandle));
             resultHandle = cullingPlanes.Dispose(resultHandle);
             resultHandle = visibleInstanceCount.Dispose(resultHandle);
-            // resultHandle = visibleIndices.Dispose(resultHandle);
             if (_forceJobFence) resultHandle.Complete();
 
 

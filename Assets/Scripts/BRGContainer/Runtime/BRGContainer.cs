@@ -111,6 +111,7 @@ namespace BRGContainer.Runtime
             return m_Groups[id];
         }
 
+        // return if batchHandle changed
         public bool ExtendInstanceCount(ref BatchHandle batchHandle, int addCount)
         {
             BatchID batchID = batchHandle.m_BatchId;
