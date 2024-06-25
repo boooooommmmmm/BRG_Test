@@ -66,12 +66,13 @@ namespace BRGContainer.Runtime
             // m_BatchRendererGroup.SetGlobalBounds(bounds);
         }
 
-        public unsafe BatchHandle AddBatch(ref BatchDescription batchDescription, [NotNull] Mesh mesh, ushort subMeshIndex, [NotNull] Material material, in RendererDescription rendererDescription)
+        public unsafe BatchHandle AddBatch(ref BatchDescription batchDescription, [NotNull] Mesh mesh, ushort subMeshIndex, [NotNull] Material material,
+            in RendererDescription rendererDescription)
         {
             GraphicsBuffer graphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, batchDescription.TotalBufferSize);
             BatchRendererData rendererData = CreateRendererData(rendererDescription, mesh, subMeshIndex, material);
             BatchGroup batchGroup = CreateBatchGroup(ref batchDescription, ref rendererData, graphicsBuffer.bufferHandle, batchDescription.m_Allocator);
-            
+
             BatchID batchId = batchGroup[0];
             m_GraphicsBuffers.Add(batchId, graphicsBuffer);
             m_Groups.Add(batchId, batchGroup);
@@ -83,7 +84,7 @@ namespace BRGContainer.Runtime
         {
             // GraphicsBuffer graphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, batchDescription.TotalBufferSize);
             batchGroup.Register(m_BatchRendererGroup, graphicsBuffer.bufferHandle);
-            
+
             BatchID batchId = batchGroup[0];
             m_GraphicsBuffers.Add(batchId, graphicsBuffer);
             m_Groups.Add(batchId, batchGroup);
@@ -133,21 +134,14 @@ namespace BRGContainer.Runtime
         private BatchHandle ResizeBatchBuffers(ref BatchID batchID, int targetCount)
         {
             targetCount = math.ceilpow2(targetCount);
-            
+
             BatchGroup batchGroup = GetBatchGroup(batchID);
             BatchDescription newBatchDescription = BatchDescription.CopyWithResize(ref batchGroup.m_BatchDescription, targetCount);
-            BatchGroup newBatchGroup = new BatchGroup(ref batchGroup, ref newBatchDescription); 
-            
+            BatchGroup newBatchGroup = new BatchGroup(ref batchGroup, ref newBatchDescription);
+
+            // no need copy graphics buffer data, BatchHandles.Upload() will flush all data to graphics buffer
             GraphicsBuffer newGraphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, newBatchDescription.TotalBufferSize);
-            GraphicsBuffer graphicsBuffer = m_GraphicsBuffers[batchID];
-            
-            var target = BatchDescription.IsUBO ? GraphicsBuffer.Target.Constant : GraphicsBuffer.Target.Raw;
-            int bufferSize = newBatchDescription.TotalBufferSize;
-            var count = BatchDescription.IsUBO ? bufferSize / 16 : bufferSize / 4;
-            var stride = BatchDescription.IsUBO ? 16 : 4;
-            // Graphics.CopyBuffer(graphicsBuffer, newGraphicsBuffer);
-            // GraphicsBuffer.CopyCount(graphicsBuffer, newGraphicsBuffer, 0);
-            
+
             DestroyBatch(m_ContainerId, batchID, true);
             return AddBatch(ref newBatchGroup, ref newBatchDescription, newGraphicsBuffer);
         }
@@ -209,6 +203,77 @@ namespace BRGContainer.Runtime
                 return false;
 
             return container.m_Groups.ContainsKey(batchId);
+        }
+        
+        internal static bool IsAlive(ContainerID containerID, BatchID batchId, int index)
+        {
+            if (GetBatchGroup(containerID, batchId, out BatchGroup group))
+            {
+                return group.IsAlive(index);
+            }
+
+            return false;
+        }
+
+        internal static void SetAlive(ContainerID containerID, BatchID batchId, int index, bool alive)
+        {
+            if (GetBatchGroup(containerID, batchId, out BatchGroup group))
+            {
+                group.SetAlive(index, alive);
+            }
+        }
+
+        internal static void SetPosition(ContainerID containerID, BatchID batchId, int index, float3 position)
+        {
+            if (GetBatchGroup(containerID, batchId, out BatchGroup group))
+            {
+                group.SetPosition(index, position);
+            }
+        }
+
+        internal static int AddAliveInstance(ContainerID containerID, BatchID batchId, ref BatchHandle batchHandle)
+        {
+            if (!m_Containers.TryGetValue(containerID, out BRGContainer container))
+            {
+                return -1;
+            }
+
+            if (!container.m_Groups.TryGetValue(batchId, out BatchGroup group))
+                return -1;
+
+            (int index, EGetNextAliveIndexInfo info) = group.GetNextAliveIndex();
+
+            if (info == EGetNextAliveIndexInfo.None)
+            {
+            }
+            else if (info == EGetNextAliveIndexInfo.NeedExtentInstanceCount)
+            {
+                bool batchHandleChanged = container.ExtendInstanceCount(ref batchHandle, 1);
+                batchHandle.IncreaseInstanceCount();
+            }
+            else if (info == EGetNextAliveIndexInfo.NeedResize)
+            {
+                bool batchHandleChanged = container.ExtendInstanceCount(ref batchHandle, 1);
+                group = container.GetBatchGroup(batchHandle.m_BatchId);
+                batchHandle.IncreaseInstanceCount();
+                (index, info) = group.GetNextAliveIndex();
+            }
+            
+            return index;
+        }
+
+        private static bool GetBatchGroup(ContainerID containerID, BatchID batchId, out BatchGroup group)
+        {
+            if (!m_Containers.TryGetValue(containerID, out BRGContainer container))
+            {
+                group = default;
+                return false;
+            }
+
+            if (!container.m_Groups.TryGetValue(batchId, out group))
+                return false;
+
+            return true;
         }
     }
 }

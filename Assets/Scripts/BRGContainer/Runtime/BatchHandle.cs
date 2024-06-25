@@ -116,6 +116,17 @@
             Interlocked.Exchange(ref *m_InstanceCount, instanceCount);
         }
         
+        public unsafe void IncreaseInstanceCount()
+        {
+            int newInstanceCount = *m_InstanceCount + 1;
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            if(newInstanceCount < 0 || newInstanceCount > m_Description.MaxInstanceCount)
+                throw new ArgumentOutOfRangeException($"IncreaseInstanceCount {newInstanceCount} out of range from 0 to {m_Description.MaxInstanceCount} (include).");
+#endif
+            
+            Interlocked.Exchange(ref *m_InstanceCount, newInstanceCount);
+        }
+        
         /// <summary>
         /// Upload current data to the GPU side.
         /// </summary>
@@ -155,6 +166,26 @@
         private bool CheckIfIsAlive(ContainerID containerId, BatchID batchId)
         {
             return BRGContainer.IsAlive(containerId, batchId);
+        }
+        
+        public bool IsInstanceAlive(int index)
+        {
+            return BRGContainer.IsAlive(m_ContainerId, m_BatchId, index);
+        }
+
+        public void SetInstanceAlive(int index, bool alive)
+        {
+            BRGContainer.SetAlive(m_ContainerId, m_BatchId, index, alive);
+        }
+        
+        public void SetPosition(int index, float3 pos)
+        {
+            BRGContainer.SetPosition(m_ContainerId, m_BatchId, index, pos);
+        }
+
+        public int AddAliveInstance(ref BatchHandle hanlde)
+        {
+            return BRGContainer.AddAliveInstance(m_ContainerId, m_BatchId, ref hanlde);
         }
     }
 }
