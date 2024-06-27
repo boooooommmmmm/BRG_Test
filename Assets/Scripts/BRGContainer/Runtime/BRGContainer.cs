@@ -32,6 +32,7 @@ namespace BRGContainer.Runtime
         private readonly NativeParallelHashMap<BatchID, BatchGroup> m_Groups;
 
         private Camera m_Camera;
+        private float3 m_Offset;
 
 
         //static
@@ -58,6 +59,11 @@ namespace BRGContainer.Runtime
         public void SetCamera(Camera camera)
         {
             m_Camera = camera;
+        }
+
+        public void SetOffset(float3 offset)
+        {
+	        m_Offset = offset;
         }
 
 

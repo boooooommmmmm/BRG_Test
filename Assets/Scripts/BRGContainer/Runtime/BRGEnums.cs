@@ -1,12 +1,12 @@
 ﻿namespace BRGContainer.Runtime
 {
-    public enum BRGViewType : int
+    public enum EBRGViewType : int
     {
-        EForward = 0,
-        EShadow0 = 1,
-        EShadow1 = 2,
-        EShadow2 = 3,
-        EViewCount = 4
+        Forward = 0,
+        Shadow0 = 1,
+        Shadow1 = 2,
+        Shadow2 = 3,
+        ViewCount = 4
     }
 
     public enum EGetNextAliveIndexInfo : int

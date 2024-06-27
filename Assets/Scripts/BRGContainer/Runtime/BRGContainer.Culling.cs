@@ -21,7 +21,7 @@ namespace BRGContainer.Runtime
             return CullingParallel(rendererGroup, cullingContext, cullingOutput, userContext);
         }
 
-        private const bool _forceJobFence = false; //default : false
+        private const bool _forceJobFence = true; //default : false
         private const bool _useMainCameraCulling = true; //default : true
 
         private static float3 commonExtents = new float3(2, 2, 2);
@@ -39,7 +39,15 @@ namespace BRGContainer.Runtime
             if (batchCount == 0)
                 return batchGroups.Dispose(default);
 
-            NativeArray<Plane> cullingPlanes = new NativeArray<Plane>(GeometryUtility.CalculateFrustumPlanes(m_Camera), Allocator.TempJob);
+            if (m_Camera)
+	            return batchGroups.Dispose(default);
+            // NativeArray<Plane> cullingPlanes = new NativeArray<Plane>(GeometryUtility.CalculateFrustumPlanes(m_Camera), Allocator.TempJob);
+            Matrix4x4 matrix4X4 = m_Camera.cameraToWorldMatrix;
+            matrix4X4.m03 -= m_Offset.x;
+            matrix4X4.m13 -= m_Offset.y;
+            matrix4X4.m23 -= m_Offset.z;
+            matrix4X4 = m_Camera.projectionMatrix * matrix4X4.inverse;
+            NativeArray<Plane> cullingPlanes = new NativeArray<Plane>(GeometryUtility.CalculateFrustumPlanes(matrix4X4), Allocator.TempJob);
             if (!_useMainCameraCulling)
             {
                 cullingPlanes.Dispose();
