@@ -183,11 +183,11 @@
 #if UNITY_ANY_INSTANCING_ENABLED
     void UnitySetupInstanceID(uint inputInstanceID)
     {
-		#if defined(UNITY_SUPPORT_INSTANCING) && defined(DOTS_INSTANCING_ON)
+        #if defined(UNITY_SUPPORT_INSTANCING) && defined(DOTS_INSTANCING_ON)
             const int localBaseInstanceId = 0;		// base instance id is always 0 in BRG (avoid using useless UnityDrawCallInfo cbuffer)
-		#else
+        #else
             const int localBaseInstanceId = unity_BaseInstanceID;
-		#endif
+        #endif
         #ifdef UNITY_STEREO_INSTANCING_ENABLED
             #if !defined(SHADEROPTIONS_XR_MAX_VIEWS) || SHADEROPTIONS_XR_MAX_VIEWS <= 2
                 #if defined(SHADER_API_GLES3)
@@ -262,10 +262,10 @@
     #if defined(UNITY_SETUP_INSTANCE_ID)
         #undef UNITY_SETUP_INSTANCE_ID
         #define UNITY_SETUP_INSTANCE_ID(input) {\
-            DEFAULT_UNITY_SETUP_INSTANCE_ID(input);\
-            SetupDOTSVisibleInstancingData();\
-            UNITY_SETUP_DOTS_MATERIAL_PROPERTY_CACHES();\
-            UNITY_SETUP_DOTS_SH_COEFFS; }
+        DEFAULT_UNITY_SETUP_INSTANCE_ID(input);\
+        SetupDOTSVisibleInstancingData();\
+        UNITY_SETUP_DOTS_MATERIAL_PROPERTY_CACHES();\
+        UNITY_SETUP_DOTS_SH_COEFFS; }
     #endif
 
 #else
@@ -279,6 +279,7 @@
     #define UNITY_DOTS_INSTANCED_PROP(type, name)
 
     #define UNITY_ACCESS_DOTS_INSTANCED_PROP(type, var) var
+    #define UNITY_ACCESS_DOTS_INSTANCED_PROP_FROM_MACRO(type, metadata_underscore_var) This_macro_cannot_be_called_without_UNITY_DOTS_INSTANCING_ENABLED // Sven: cannot use this macro
     #define UNITY_ACCESS_DOTS_AND_TRADITIONAL_INSTANCED_PROP(type, arr, var) UNITY_ACCESS_INSTANCED_PROP(arr, var)
 
     #define UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(type, var) var
@@ -407,10 +408,17 @@
         #undef UNITY_PREV_MATRIX_M
         #undef UNITY_PREV_MATRIX_I_M
 
-        #define UNITY_DOTS_MATRIX_M        LoadDOTSInstancedData_float4x4_from_float3x4(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_ObjectToWorld))
-        #define UNITY_DOTS_MATRIX_I_M      LoadDOTSInstancedData_float4x4_from_float3x4(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_WorldToObject))
-        #define UNITY_DOTS_PREV_MATRIX_M   LoadDOTSInstancedData_float4x4_from_float3x4(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_MatrixPreviousM))
-        #define UNITY_DOTS_PREV_MATRIX_I_M LoadDOTSInstancedData_float4x4_from_float3x4(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_MatrixPreviousMI))
+        // #define UNITY_DOTS_MATRIX_M        LoadDOTSInstancedData_float4x4_from_float3x4(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_ObjectToWorld))
+        // #define UNITY_DOTS_MATRIX_I_M      LoadDOTSInstancedData_float4x4_from_float3x4(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_WorldToObject))
+        // #define UNITY_DOTS_PREV_MATRIX_M   LoadDOTSInstancedData_float4x4_from_float3x4(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_MatrixPreviousM))
+        // #define UNITY_DOTS_PREV_MATRIX_I_M LoadDOTSInstancedData_float4x4_from_float3x4(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_MatrixPreviousMI))
+
+        float4 worldOffset;
+
+        #define UNITY_DOTS_MATRIX_M        LoadDOTSInstancedData_float4x4_from_float3x4_With_Offset(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_ObjectToWorld), worldOffset)
+        #define UNITY_DOTS_MATRIX_I_M      LoadDOTSInstancedData_float4x4_from_float3x4_With_Reversed_Offset(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_WorldToObject), worldOffset)
+        #define UNITY_DOTS_PREV_MATRIX_M   LoadDOTSInstancedData_float4x4_from_float3x4_With_Offset(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_MatrixPreviousM), worldOffset)
+        #define UNITY_DOTS_PREV_MATRIX_I_M LoadDOTSInstancedData_float4x4_from_float3x4_With_Reversed_Offset(UNITY_DOTS_INSTANCED_METADATA_NAME(float3x4, unity_MatrixPreviousMI), worldOffset)
 
         #ifdef MODIFY_MATRIX_FOR_CAMERA_RELATIVE_RENDERING
             #define UNITY_MATRIX_M        ApplyCameraTranslationToMatrix(UNITY_DOTS_MATRIX_M)

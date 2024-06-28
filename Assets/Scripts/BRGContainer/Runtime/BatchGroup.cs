@@ -74,81 +74,80 @@ namespace BRGContainer.Runtime
         {
             m_BatchDescription = batchDescription;
             BatchRendererData = rendererData;
+            m_Allocator = allocator;
 
             m_BufferLength = m_BatchDescription.TotalBufferSize / 16;
             WindowCount = m_BatchDescription.WindowCount;
 
-            m_Allocator = allocator;
-
             m_DataBuffer = (float4*)UnsafeUtility.Malloc(s_SizeOfFloat4 * m_BufferLength,
-                UnsafeUtility.AlignOf<float4>(), allocator);
+                UnsafeUtility.AlignOf<float4>(), m_Allocator);
             m_Batches = (BatchID*)UnsafeUtility.Malloc(s_SizeOfBatchID * m_BufferLength,
-                UnsafeUtility.AlignOf<BatchID>(), allocator);
+                UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
 
-            m_InstanceCount = (int*)UnsafeUtility.Malloc(s_SizeOfInt, UnsafeUtility.AlignOf<int>(), allocator);
+            m_InstanceCount = (int*)UnsafeUtility.Malloc(s_SizeOfInt, UnsafeUtility.AlignOf<int>(), m_Allocator);
             UnsafeUtility.MemClear(m_InstanceCount, UnsafeUtility.SizeOf<int>());
-            m_AliveCount = (int*)UnsafeUtility.Malloc(s_SizeOfInt, UnsafeUtility.AlignOf<int>(), allocator);
+            m_AliveCount = (int*)UnsafeUtility.Malloc(s_SizeOfInt, UnsafeUtility.AlignOf<int>(), m_Allocator);
             UnsafeUtility.MemClear(m_AliveCount, UnsafeUtility.SizeOf<int>());
 
             // persistent buffers
             int maxCount = m_BatchDescription.MaxInstanceCount;
-            m_Positions = (float3*)UnsafeUtility.Malloc(s_SizeOfFloat3 * maxCount, UnsafeUtility.AlignOf<float3>(), allocator);
-            m_Visibles = (int*)UnsafeUtility.Malloc(s_SizeOfInt * maxCount, UnsafeUtility.AlignOf<int>(), allocator);
-            m_State = (uint*)UnsafeUtility.Malloc(s_SizeOfUint * maxCount, UnsafeUtility.AlignOf<uint>(), allocator);
-            m_Alives = (bool*)UnsafeUtility.Malloc(s_SizeOfBool * maxCount, UnsafeUtility.AlignOf<bool>(), allocator);
+            m_Positions = (float3*)UnsafeUtility.Malloc(s_SizeOfFloat3 * maxCount, UnsafeUtility.AlignOf<float3>(), m_Allocator);
+            m_Visibles = (int*)UnsafeUtility.Malloc(s_SizeOfInt * maxCount, UnsafeUtility.AlignOf<int>(), m_Allocator);
+            m_State = (uint*)UnsafeUtility.Malloc(s_SizeOfUint * maxCount, UnsafeUtility.AlignOf<uint>(), m_Allocator);
+            m_Alives = (bool*)UnsafeUtility.Malloc(s_SizeOfBool * maxCount, UnsafeUtility.AlignOf<bool>(), m_Allocator);
             UnsafeUtility.MemClear(m_Alives, s_SizeOfBool * maxCount);
         }
 
         // copy ctor for resizing batchGroup
-        public unsafe BatchGroup(ref BatchGroup _batchGroup, ref BatchDescription description)
-        {
-            m_BatchDescription = description;
-            BatchRendererData = _batchGroup.BatchRendererData;
-            m_BufferLength = m_BatchDescription.TotalBufferSize / 16;
-            WindowCount = m_BatchDescription.WindowCount;
-
-            m_Allocator = _batchGroup.m_Allocator;
-
-            m_InstanceCount = (int*)UnsafeUtility.Malloc(s_SizeOfInt, UnsafeUtility.AlignOf<int>(), m_Allocator);
-            UnsafeUtility.MemCpy(m_InstanceCount, _batchGroup.m_InstanceCount, UnsafeUtility.SizeOf<int>());
-            m_AliveCount = (int*)UnsafeUtility.Malloc(s_SizeOfInt, UnsafeUtility.AlignOf<int>(), m_Allocator);
-            UnsafeUtility.MemCpy(m_AliveCount, _batchGroup.m_AliveCount, UnsafeUtility.SizeOf<int>());
-
-            // resize buffers
-            int lastMaxCount = _batchGroup.m_BatchDescription.MaxInstanceCount;
-            int lastBufferLength = _batchGroup.m_BufferLength;
-            int currentMaxCount = m_BatchDescription.MaxInstanceCount;
-            int currentBufferLength = m_BufferLength;
-            m_DataBuffer = (float4*)UnsafeUtility.Malloc(s_SizeOfFloat4 * currentBufferLength, UnsafeUtility.AlignOf<float4>(), m_Allocator);
-            UnsafeUtility.MemClear(m_DataBuffer, s_SizeOfFloat4 * currentBufferLength);
-            m_Batches = (BatchID*)UnsafeUtility.Malloc(s_SizeOfBatchID * currentBufferLength, UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
-            m_Positions = (float3*)UnsafeUtility.Malloc(s_SizeOfFloat3 * currentMaxCount, UnsafeUtility.AlignOf<float3>(), m_Allocator);
-            m_Visibles = (int*)UnsafeUtility.Malloc(s_SizeOfInt * currentMaxCount, UnsafeUtility.AlignOf<int>(), m_Allocator);
-            m_State = (uint*)UnsafeUtility.Malloc(s_SizeOfUint * currentMaxCount,UnsafeUtility.AlignOf<uint>(), m_Allocator);
-            m_Alives = (bool*)UnsafeUtility.Malloc(s_SizeOfBool * currentMaxCount,UnsafeUtility.AlignOf<bool>(), m_Allocator);
-            UnsafeUtility.MemClear(m_Alives, s_SizeOfBool * currentMaxCount);
-
-            BatchDescription oldBatchDescription = _batchGroup.m_BatchDescription;
-            for (int i = 0, lastDataOffset = 0, newDataOffset = 0; i < oldBatchDescription.MetadataLength; i++)
-            {
-                MetadataValue oldValue = oldBatchDescription[i];
-                MetadataInfo oldInfo = oldBatchDescription.GetMetadataInfo(oldValue.NameID);
-                int size = oldInfo.Size;
-                
-                UnsafeUtility.MemCpy(m_DataBuffer + newDataOffset, _batchGroup.m_DataBuffer + lastDataOffset, size * lastMaxCount);
-
-                newDataOffset += size * currentMaxCount / s_SizeOfFloat4;
-                lastDataOffset += size * lastMaxCount / s_SizeOfFloat4;
-            }
-
-            UnsafeUtility.MemCpy(m_Batches, _batchGroup.m_Batches, s_SizeOfBatchID * lastBufferLength);
-            UnsafeUtility.MemCpy(m_Positions, _batchGroup.m_Positions, s_SizeOfFloat3 * lastMaxCount);
-            UnsafeUtility.MemCpy(m_Visibles, _batchGroup.m_Visibles, s_SizeOfInt * lastMaxCount);
-            UnsafeUtility.MemCpy(m_State, _batchGroup.m_State, s_SizeOfUint * lastMaxCount);
-            UnsafeUtility.MemCpy(m_Alives, _batchGroup.m_Alives, s_SizeOfBool * lastMaxCount);
-
-            // _batchGroup.Dispose();
-        }
+        // public unsafe BatchGroup(ref BatchGroup _batchGroup, ref BatchDescription description)
+        // {
+        //     m_BatchDescription = description;
+        //     BatchRendererData = _batchGroup.BatchRendererData;
+        //     m_BufferLength = m_BatchDescription.TotalBufferSize / 16;
+        //     WindowCount = m_BatchDescription.WindowCount;
+        //
+        //     m_Allocator = _batchGroup.m_Allocator;
+        //
+        //     m_InstanceCount = (int*)UnsafeUtility.Malloc(s_SizeOfInt, UnsafeUtility.AlignOf<int>(), m_Allocator);
+        //     UnsafeUtility.MemCpy(m_InstanceCount, _batchGroup.m_InstanceCount, UnsafeUtility.SizeOf<int>());
+        //     m_AliveCount = (int*)UnsafeUtility.Malloc(s_SizeOfInt, UnsafeUtility.AlignOf<int>(), m_Allocator);
+        //     UnsafeUtility.MemCpy(m_AliveCount, _batchGroup.m_AliveCount, UnsafeUtility.SizeOf<int>());
+        //
+        //     // resize buffers
+        //     int lastMaxCount = _batchGroup.m_BatchDescription.MaxInstanceCount;
+        //     int lastBufferLength = _batchGroup.m_BufferLength;
+        //     int currentMaxCount = m_BatchDescription.MaxInstanceCount;
+        //     int currentBufferLength = m_BufferLength;
+        //     m_DataBuffer = (float4*)UnsafeUtility.Malloc(s_SizeOfFloat4 * currentBufferLength, UnsafeUtility.AlignOf<float4>(), m_Allocator);
+        //     UnsafeUtility.MemClear(m_DataBuffer, s_SizeOfFloat4 * currentBufferLength);
+        //     m_Batches = (BatchID*)UnsafeUtility.Malloc(s_SizeOfBatchID * currentBufferLength, UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
+        //     m_Positions = (float3*)UnsafeUtility.Malloc(s_SizeOfFloat3 * currentMaxCount, UnsafeUtility.AlignOf<float3>(), m_Allocator);
+        //     m_Visibles = (int*)UnsafeUtility.Malloc(s_SizeOfInt * currentMaxCount, UnsafeUtility.AlignOf<int>(), m_Allocator);
+        //     m_State = (uint*)UnsafeUtility.Malloc(s_SizeOfUint * currentMaxCount,UnsafeUtility.AlignOf<uint>(), m_Allocator);
+        //     m_Alives = (bool*)UnsafeUtility.Malloc(s_SizeOfBool * currentMaxCount,UnsafeUtility.AlignOf<bool>(), m_Allocator);
+        //     UnsafeUtility.MemClear(m_Alives, s_SizeOfBool * currentMaxCount);
+        //
+        //     BatchDescription oldBatchDescription = _batchGroup.m_BatchDescription;
+        //     for (int i = 0, lastDataOffset = 0, newDataOffset = 0; i < oldBatchDescription.MetadataLength; i++)
+        //     {
+        //         MetadataValue oldValue = oldBatchDescription[i];
+        //         MetadataInfo oldInfo = oldBatchDescription.GetMetadataInfo(oldValue.NameID);
+        //         int size = oldInfo.Size;
+        //         
+        //         UnsafeUtility.MemCpy(m_DataBuffer + newDataOffset, _batchGroup.m_DataBuffer + lastDataOffset, size * lastMaxCount);
+        //
+        //         newDataOffset += size * currentMaxCount / s_SizeOfFloat4;
+        //         lastDataOffset += size * lastMaxCount / s_SizeOfFloat4;
+        //     }
+        //
+        //     UnsafeUtility.MemCpy(m_Batches, _batchGroup.m_Batches, s_SizeOfBatchID * lastBufferLength);
+        //     UnsafeUtility.MemCpy(m_Positions, _batchGroup.m_Positions, s_SizeOfFloat3 * lastMaxCount);
+        //     UnsafeUtility.MemCpy(m_Visibles, _batchGroup.m_Visibles, s_SizeOfInt * lastMaxCount);
+        //     UnsafeUtility.MemCpy(m_State, _batchGroup.m_State, s_SizeOfUint * lastMaxCount);
+        //     UnsafeUtility.MemCpy(m_Alives, _batchGroup.m_Alives, s_SizeOfBool * lastMaxCount);
+        //
+        //     // _batchGroup.Dispose();
+        // }
 
         public readonly unsafe NativeArray<float4> GetNativeBuffer()
         {
@@ -170,9 +169,8 @@ namespace BRGContainer.Runtime
         }
 
         [BurstDiscard]
-        public unsafe void Register([NotNull] BatchRendererGroup batchRendererGroup, GraphicsBufferHandle bufferHandle)
+        public unsafe void Register([NotNull] BatchRendererGroup batchRendererGroup, GraphicsBufferHandle bufferHandle, NativeArray<MetadataValue> metadataValues)
         {
-            var metadataValues = m_BatchDescription.AsNativeArray();
             for (var i = 0; i < m_BatchDescription.WindowCount; i++)
             {
                 var offset = (uint)(i * m_BatchDescription.AlignedWindowSize);
@@ -180,21 +178,13 @@ namespace BRGContainer.Runtime
                 m_Batches[i] = batchId;
             }
         }
-
+        
         [BurstDiscard]
-        public unsafe void Unregister([NotNull] BatchRendererGroup batchRendererGroup, bool onlyRemoveBatch)
+        public unsafe void Unregister(BatchRendererGroup batchRendererGroup)
         {
             for (var i = 0; i < WindowCount; i++)
             {
                 batchRendererGroup.RemoveBatch(m_Batches[i]);
-            }
-
-            if (!onlyRemoveBatch)
-            {
-                if (BatchRendererData.MeshID != BatchMeshID.Null)
-                    batchRendererGroup.UnregisterMesh(BatchRendererData.MeshID);
-                if (BatchRendererData.MaterialID != BatchMaterialID.Null)
-                    batchRendererGroup.UnregisterMaterial(BatchRendererData.MaterialID);
             }
         }
 
@@ -239,10 +229,6 @@ namespace BRGContainer.Runtime
         //     return nativeArray;
         // }
 
-        public readonly unsafe BatchID* GetUnsafePtr()
-        {
-            return m_Batches;
-        }
 
         public unsafe void Dispose()
         {
@@ -325,84 +311,6 @@ namespace BRGContainer.Runtime
         }
 
         #region Get/Set State functions
-
-        [BRGMethodThreadUnsafe]
-        public unsafe void SetPosition(int index, float3 position)
-        {
-            m_Positions[index] = position;
-        }
-        
-        // private unsafe void SetState(int index, uint state)
-        // {
-        //     m_State[index] = state;
-        // }
-
-        public unsafe bool SetAlive(int index, bool isAlive)
-        {
-#if ENABLE_UNITY_COLLECTIONS_CHECKS
-            if (index < 0 || index > InstanceCount)
-                throw new ArgumentOutOfRangeException($"SetAlive index {index} out of range from 0 to {InstanceCount} (include).");
-#endif
-            bool lastAlive = m_Alives[index];
-
-             if (isAlive != lastAlive)
-            {
-                //update alive
-                if (isAlive)
-                    (*m_AliveCount)++;
-                else
-                    (*m_AliveCount)--;
-                m_Alives[index] = isAlive;
-                
-                //update state
-                uint state = m_State[index];
-                int pos = 0;
-            
-                if (isAlive) {
-                    state |= 1u << pos;
-                } else {
-                    state &= ~(1u << pos);
-                }       
-                m_State[index] = state;
-                
-                return true;
-            }
-
-            return false;
-        }
-
-        public unsafe bool IsAlive(int index)
-        {
-            return m_Alives[index];
-        }
-        
-        private unsafe bool IsAliveViaState(int index)
-        {
-            uint state = m_State[index];
-            int aliveMaskPos = 0;
-            uint aliveMask = state & (1u << aliveMaskPos);
-            bool isAlive = aliveMask > 0u ? true : false;
-            
-            return isAlive;
-        }
-
-        public unsafe (int, EGetNextAliveIndexInfo) GetNextAliveIndex()
-        {
-            int index = -1;
-            if (AliveCount >= m_BatchDescription.MaxInstanceCount)
-                return (index, EGetNextAliveIndexInfo.NeedResize); // need resize
-            else if (AliveCount == InstanceCount)
-                index = AliveCount; // index starts at 0
-            else // AliveCount < InstanceCount
-            {
-                for (int i = 0; i < InstanceCount; i++)
-                {
-                    if (!m_Alives[i]) return (i, EGetNextAliveIndexInfo.None);
-                }
-            }
-
-            return (index, EGetNextAliveIndexInfo.NeedExtentInstanceCount);
-        }
 
         #endregion
 

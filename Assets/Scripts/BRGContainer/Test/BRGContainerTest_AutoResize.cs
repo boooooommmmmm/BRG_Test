@@ -35,7 +35,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
         var bounds = new Bounds(new Vector3(0, 0, 0), new Vector3(1048576.0f, 1048576.0f, 1048576.0f));
         m_BRGContainer = new BRGContainer.Runtime.BRGContainer(bounds);
 
-        m_BRGContainer.SetCamera(MainCamera);
+        m_BRGContainer.SetMainCamera(MainCamera);
 
         // AddBatch();
     }

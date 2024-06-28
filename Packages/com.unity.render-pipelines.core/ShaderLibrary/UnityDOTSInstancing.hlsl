@@ -157,6 +157,10 @@ UNITY_DOTS_INSTANCED_PROP_IS_OVERRIDE_ENABLED(var) ? LoadDOTSInstancedData_##typ
 : ((type)0) \
 )
 
+//Sven test
+#define UNITY_ACCESS_DOTS_INSTANCED_PROP_FROM_MACRO(type, metadata_underscore_var) LoadDOTSInstancedData_##type(UNITY_DOTS_INSTANCED_METADATA_NAME_FROM_MACRO(type, metadata_underscore_var))
+
+
 #define UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(type, var) ( /* Compile-time branches */ \
 UNITY_DOTS_INSTANCED_PROP_IS_OVERRIDE_ENABLED(var) ? LoadDOTSInstancedData_##type(var, UNITY_DOTS_INSTANCED_METADATA_NAME(type, var)) \
 : UNITY_DOTS_INSTANCED_PROP_IS_OVERRIDE_REQUIRED(var) ? LoadDOTSInstancedDataOverridden_##type(UNITY_DOTS_INSTANCED_METADATA_NAME(type, var)) \
@@ -565,6 +569,37 @@ float4x4 LoadDOTSInstancedData_float4x4_from_float3x4(uint metadata)
         0.0,  0.0,  0.0,  1.0
     );
 }
+
+float4x4 LoadDOTSInstancedData_float4x4_from_float3x4_With_Offset(uint metadata, float3 offset)
+{
+    uint address = ComputeDOTSInstanceDataAddress(metadata, 3 * 16);
+    float4 p1 = asfloat(DOTSInstanceData_Load4(address + 0 * 16));
+    float4 p2 = asfloat(DOTSInstanceData_Load4(address + 1 * 16));
+    float4 p3 = asfloat(DOTSInstanceData_Load4(address + 2 * 16));
+
+    return float4x4(
+        p1.x, p1.w, p2.z, p3.y + offset.x,
+        p1.y, p2.x, p2.w, p3.z + offset.y,
+        p1.z, p2.y, p3.x, p3.w + offset.z,
+        0.0,  0.0,  0.0,  1.0
+    );
+}
+
+float4x4 LoadDOTSInstancedData_float4x4_from_float3x4_With_Reversed_Offset(uint metadata, float3 offset)
+{
+    uint address = ComputeDOTSInstanceDataAddress(metadata, 3 * 16);
+    float4 p1 = asfloat(DOTSInstanceData_Load4(address + 0 * 16));
+    float4 p2 = asfloat(DOTSInstanceData_Load4(address + 1 * 16));
+    float4 p3 = asfloat(DOTSInstanceData_Load4(address + 2 * 16));
+
+    return float4x4(
+        p1.x, p1.w, p2.z, p3.y - offset.x,
+        p1.y, p2.x, p2.w, p3.z - offset.y,
+        p1.z, p2.y, p3.x, p3.w - offset.z,
+        0.0,  0.0,  0.0,  1.0
+    );
+}
+
 float4x4 LoadDOTSInstancedDataOverridden_float4x4_from_float3x4(uint metadata)
 {
     uint address = ComputeDOTSInstanceDataAddressOverridden(metadata, 3 * 16);

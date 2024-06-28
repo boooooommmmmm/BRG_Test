@@ -1,4 +1,6 @@
-﻿namespace BRGContainer.Runtime
+﻿using UnityEngine;
+
+namespace BRGContainer.Runtime
 {
     using System;
     using System.Threading;
@@ -17,7 +19,7 @@
     public readonly struct BatchHandle
     {
         private readonly ContainerID m_ContainerId;
-        internal readonly BatchID m_BatchId;
+        internal readonly BatchLODGroupID m_BatchLODGroupID;
         
         [NativeDisableContainerSafetyRestriction]
         private readonly NativeArray<float4> m_Buffer;
@@ -29,15 +31,15 @@
         private readonly bool isCreated;
 
         public bool IsCreated => isCreated;
-        public bool IsAlive => IsCreated && CheckIfIsAlive(m_ContainerId, m_BatchId);
+        public bool IsAlive => IsCreated && CheckIfIsAlive(m_ContainerId, m_BatchLODGroupID);
         public unsafe int InstanceCount => (IntPtr)m_InstanceCount == IntPtr.Zero ? 0 : *m_InstanceCount;
         public BatchDescription Description => m_Description;
 
         // [ExcludeFromBurstCompatTesting("BatchHandle creating is unburstable")]
-        internal unsafe BatchHandle(ContainerID containerId, BatchID batchId, NativeArray<float4> buffer, int* instanceCount, ref BatchDescription description)
+        internal unsafe BatchHandle(ContainerID containerId, BatchLODGroupID batchLODGroupID, NativeArray<float4> buffer, int* instanceCount, ref BatchDescription description)
         {
             m_ContainerId = containerId;
-            m_BatchId = batchId;
+            m_BatchLODGroupID = batchLODGroupID;
             
             m_Buffer = buffer;
             m_InstanceCount = instanceCount;
@@ -81,7 +83,7 @@
             if (completeWindows > 0)
             {
                 var size = completeWindows * m_Description.AlignedWindowSize / 16;
-                Upload(m_ContainerId, m_BatchId, m_Buffer, 0, 0, size);
+                Upload(m_ContainerId, m_BatchLODGroupID, m_Buffer, 0, 0, size);
             }
 
             var lastBatchId = completeWindows;
@@ -101,7 +103,7 @@
                 var sizeInFloat4 = metadataInfo.Size / 16;
                 offset += sizeInFloat4;
 
-                Upload(m_ContainerId, m_BatchId, m_Buffer, startIndex, startIndex,
+                Upload(m_ContainerId, m_BatchLODGroupID, m_Buffer, startIndex, startIndex,
                     itemInLastBatch * sizeInFloat4);
             }
         }
@@ -146,46 +148,51 @@
                 throw new InvalidOperationException("This batch already has been destroyed.");
 #endif
             
-            Destroy(m_ContainerId, m_BatchId);
+            Destroy(m_ContainerId, m_BatchLODGroupID);
         }
         
         // update graphics buffers (GPU buffer)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Upload(ContainerID containerId, BatchID batchId, NativeArray<float4> data, int nativeBufferStartIndex, int graphicsBufferStartIndex, int count)
+        private void Upload(ContainerID containerId, BatchLODGroupID batchLODGroupID, NativeArray<float4> data, int nativeBufferStartIndex, int graphicsBufferStartIndex, int count)
         {
-            BRGContainer.UploadCallback(containerId, m_BatchId, data, nativeBufferStartIndex, graphicsBufferStartIndex, count);
+            BRGContainer.UploadCallback(containerId, batchLODGroupID, data, nativeBufferStartIndex, graphicsBufferStartIndex, count);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Destroy(ContainerID containerId, BatchID batchId)
+        private void Destroy(ContainerID containerId, BatchLODGroupID batchLODGroupID)
         {
-            BRGContainer.DestroyBatch(containerId, batchId);
+            BRGContainer.DestroyBatch(containerId, batchLODGroupID);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool CheckIfIsAlive(ContainerID containerId, BatchID batchId)
+        private bool CheckIfIsAlive(ContainerID containerId, BatchLODGroupID batchLODGroupID)
         {
-            return BRGContainer.IsAlive(containerId, batchId);
+            return BRGContainer.IsAlive(containerId, batchLODGroupID);
         }
         
         public bool IsInstanceAlive(int index)
         {
-            return BRGContainer.IsAlive(m_ContainerId, m_BatchId, index);
+            return BRGContainer.IsAlive(m_ContainerId, m_BatchLODGroupID, index);
+        }
+        
+        public void SetInstanceAlive(int index, bool alive) // all lod inalive
+        {
+            BRGContainer.SetAlive(m_ContainerId, m_BatchLODGroupID, index, alive);
         }
 
-        public void SetInstanceAlive(int index, bool alive)
+        public void SetInstanceAlive(int index, uint lod, bool alive)
         {
-            BRGContainer.SetAlive(m_ContainerId, m_BatchId, index, alive);
+            BRGContainer.SetAlive(m_ContainerId, m_BatchLODGroupID, index, lod, alive);
         }
         
         public void SetPosition(int index, float3 pos)
         {
-            BRGContainer.SetPosition(m_ContainerId, m_BatchId, index, pos);
+            BRGContainer.SetPosition(m_ContainerId, m_BatchLODGroupID, index, pos);
         }
 
         public int AddAliveInstance(ref BatchHandle hanlde)
         {
-            return BRGContainer.AddAliveInstance(m_ContainerId, m_BatchId, ref hanlde);
+            return BRGContainer.AddAliveInstance(m_ContainerId, m_BatchLODGroupID, ref hanlde);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Threading;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
@@ -34,5 +35,16 @@ namespace BRGContainer.Runtime
 
             return batchRendererData;
         }
+
+        private unsafe void CreateBatchLODGroupID(out BatchLODGroupID batchLODGroupID)
+        {
+            batchLODGroupID = new BatchLODGroupID(Interlocked.Increment(ref m_BatchLODGroupGlobalID));
+        }
+
+        private unsafe BatchLODGroup CreateBatchLODGroup(ref BatchDescription batchDescription, ref BatchRendererData rendererData, in BatchLODGroupID batchLODGroupID, Allocator allocator)
+        {
+            return new BatchLODGroup(ref batchDescription, in rendererData, batchLODGroupID, allocator);
+        }
+        
     }
 }
