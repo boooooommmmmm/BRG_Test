@@ -21,30 +21,32 @@
     public struct BatchLODGroup : INativeDisposable
     {
         private static int s_LODOffset = 0;
-        private static int s_AliveOffset = 4;
+        private static int s_ActiveOffset = 4;
         private static uint s_bLODMask = 0x7; // 0000 0000 0000 0111
-        private static uint s_bAliveMask = 0x8; // 1 << 4
+        private static uint s_bActiveMask = 0x8; // 1 << 4
         private static uint s_LODCount = 4u;
 
         private readonly int m_BufferLength;
         private readonly uint m_LODCount;
         private /*readonly*/ Allocator m_Allocator;
         internal readonly BatchDescription m_BatchDescription;
-        public readonly BatchRendererData BatchRendererData;
+        public readonly RendererDescription RendererDescription;
         public BatchLODGroupID LODGroupID;
 
         [NativeDisableUnsafePtrRestriction] internal unsafe int* m_InstanceCount;
         [NativeDisableUnsafePtrRestriction] private unsafe float4* m_DataBuffer; // o2w, w2o, meta data arrays
-        [NativeDisableUnsafePtrRestriction] private unsafe uint* m_State; // 0-3 bit: lod; 4 bit: alive state
+        [NativeDisableUnsafePtrRestriction] private unsafe uint* m_State; // 0-3 bit: lod; 4 bit: active state
         [NativeDisableUnsafePtrRestriction] private unsafe HISMAABB* m_AABBs;
         [NativeDisableUnsafePtrRestriction] private unsafe BatchLOD* m_BatchLODs;
-        [NativeDisableUnsafePtrRestriction] internal unsafe int* m_AliveCount; //
+        [NativeDisableUnsafePtrRestriction] internal unsafe int* m_ActiveCount; //
 
-        public readonly unsafe int AliveCount
+        public readonly unsafe int ActiveCount
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => *m_AliveCount;
+            get => *m_ActiveCount;
         }
+
+        public readonly uint LODCount => m_LODCount;
 
         // public readonly unsafe bool IsCreated => (IntPtr)m_DataBuffer != IntPtr.Zero &&
         //                                          (IntPtr)m_Batches != IntPtr.Zero &&
@@ -54,6 +56,8 @@
 
         public readonly BatchDescription BatchDescription => m_BatchDescription;
 
+        public readonly unsafe BatchLOD this[uint index] => m_BatchLODs[(int)index]; 
+
         public readonly unsafe int InstanceCount
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -61,12 +65,12 @@
         }
 
 
-        public unsafe BatchLODGroup(ref BatchDescription batchDescription, in BatchRendererData rendererData, in BatchLODGroupID batchLODGroupID, Allocator allocator)
+        public unsafe BatchLODGroup(in BatchDescription batchDescription, in RendererDescription rendererDescription, in BatchLODGroupID batchLODGroupID, in BatchWorldObjectData worldObjectData, Allocator allocator)
         {
             m_Allocator = allocator;
             m_BatchDescription = batchDescription;
-            BatchRendererData = rendererData;
-            m_LODCount = s_LODCount;
+            RendererDescription = rendererDescription;
+            m_LODCount = (uint)worldObjectData.LODCount;
             LODGroupID = batchLODGroupID;
 
             m_BufferLength = m_BatchDescription.TotalBufferSize / 16;
@@ -75,17 +79,19 @@
 
             m_InstanceCount = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt, BRGConstants.AlignOfInt, m_Allocator);
             UnsafeUtility.MemClear(m_InstanceCount, BRGConstants.SizeOfInt);
-            m_AliveCount = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt, BRGConstants.AlignOfInt, m_Allocator);
-            UnsafeUtility.MemClear(m_AliveCount, BRGConstants.SizeOfInt);
+            m_ActiveCount = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt, BRGConstants.AlignOfInt, m_Allocator);
+            UnsafeUtility.MemClear(m_ActiveCount, BRGConstants.SizeOfInt);
 
             int maxCount = m_BatchDescription.MaxInstanceCount;
             m_State = (uint*)UnsafeUtility.Malloc(BRGConstants.SizeOfUint * maxCount, BRGConstants.AlignOfUint, m_Allocator);
             m_AABBs = (HISMAABB*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<HISMAABB>() * maxCount, UnsafeUtility.AlignOf<HISMAABB>(), m_Allocator);
 
-            m_BatchLODs = (BatchLOD*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<BatchLOD>() * s_LODCount, UnsafeUtility.AlignOf<BatchLOD>(), m_Allocator);
-            for (uint lodIndex = 0u; lodIndex < s_LODCount; lodIndex++)
+            uint lodCount = (uint)Mathf.Min((uint)worldObjectData.LODCount, s_LODCount); 
+            m_BatchLODs = (BatchLOD*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<BatchLOD>() * lodCount, UnsafeUtility.AlignOf<BatchLOD>(), m_Allocator);
+            for (uint lodIndex = 0u; lodIndex < lodCount; lodIndex++)
             {
-                m_BatchLODs[lodIndex] = new BatchLOD(lodIndex, -1, maxCount, m_InstanceCount, ref batchDescription, in rendererData, m_Allocator);
+                BatchWorldObjectLODData batchWorldObjectLODData = worldObjectData[lodIndex];
+                m_BatchLODs[lodIndex] = new BatchLOD(in batchDescription, in rendererDescription, in batchWorldObjectLODData, lodIndex, maxCount, m_InstanceCount, m_Allocator);
             }
         }
 
@@ -165,12 +171,6 @@
             {
                 m_BatchLODs[lodIndex].Unregister(batchRendererGroup);
             }
-
-            // notify unity brg to unregister mesh and mat 
-            if (BatchRendererData.MeshID != BatchMeshID.Null)
-                batchRendererGroup.UnregisterMesh(BatchRendererData.MeshID);
-            if (BatchRendererData.MaterialID != BatchMaterialID.Null)
-                batchRendererGroup.UnregisterMaterial(BatchRendererData.MaterialID);
         }
 
         public unsafe void SetInstanceCount(int instanceCount)
@@ -183,14 +183,14 @@
             Interlocked.Exchange(ref *m_InstanceCount, instanceCount);
         }
 
-        public unsafe void SetAliveCount(int aliveCount)
+        public unsafe void SetActiveCount(int activeCount)
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-            if (aliveCount < 0 || aliveCount > InstanceCount)
-                throw new ArgumentOutOfRangeException($"Alive count {aliveCount} out of range from 0 to {InstanceCount} (include).");
+            if (activeCount < 0 || activeCount > InstanceCount)
+                throw new ArgumentOutOfRangeException($"Active count {activeCount} out of range from 0 to {InstanceCount} (include).");
 #endif
 
-            Interlocked.Exchange(ref *m_AliveCount, aliveCount);
+            Interlocked.Exchange(ref *m_ActiveCount, activeCount);
         }
 
         // public unsafe NativeArray<PackedMatrix> GetObjectToWorldArray(Allocator allocator)
@@ -229,9 +229,13 @@
                 throw new InvalidOperationException($"The {nameof(BatchLODGroup)} is already disposed");
             if ((IntPtr)m_BatchLODs == IntPtr.Zero)
                 throw new InvalidOperationException($"The {nameof(BatchLODGroup)} is already disposed");
-            if ((IntPtr)m_AliveCount == IntPtr.Zero)
+            if ((IntPtr)m_ActiveCount == IntPtr.Zero)
                 throw new InvalidOperationException($"The {nameof(BatchLODGroup)} is already disposed");
 #endif
+            for (int lodIndex = 0; lodIndex < LODCount; lodIndex++)
+            {
+                m_BatchLODs[lodIndex].Dispose();
+            }
 
             if (m_Allocator > Allocator.None)
             {
@@ -240,10 +244,9 @@
                 UnsafeUtility.Free(m_State, m_Allocator);
                 UnsafeUtility.Free(m_AABBs, m_Allocator);
                 UnsafeUtility.Free(m_BatchLODs, m_Allocator);
-                UnsafeUtility.Free(m_AliveCount, m_Allocator);
+                UnsafeUtility.Free(m_ActiveCount, m_Allocator);
 
-                m_BatchDescription.Dispose();
-                BatchRendererData.Dispose();
+                m_BatchDescription.Dispose(); // only release here, cannot be release via BatchLOD/BatchGroup
                 m_Allocator = Allocator.Invalid;
             }
 
@@ -252,7 +255,7 @@
             m_State = null;
             m_AABBs = null;
             m_BatchLODs = null;
-            m_AliveCount = null;
+            m_ActiveCount = null;
         }
 
         // @TODO: use jobs to dispose
@@ -304,35 +307,41 @@
 
         #region Get/Set State functions
 
-        public unsafe void SetAlive(int index, bool isAlive)
-        {
-            1111
-        }
-
-        public unsafe void SetAlive(int index, uint lod, bool isAlive)
+        public unsafe void SetInactive(int index)
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             if (index < 0 || index > InstanceCount)
-                throw new ArgumentOutOfRangeException($"SetAlive index {index} out of range from 0 to {InstanceCount} (include).");
+                throw new ArgumentOutOfRangeException($"SetInactive index {index} out of range from 0 to {InstanceCount} (include).");
+#endif
+            uint savedState = m_State[index];
+            savedState &= ~(1u << s_ActiveOffset);
+            m_State[index] = savedState;
+        }
+
+        public unsafe void SetActive(int index, uint lod, bool isActive)
+        {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            if (index < 0 || index > InstanceCount)
+                throw new ArgumentOutOfRangeException($"SetActive index {index} out of range from 0 to {InstanceCount} (include).");
 #endif
             uint savedState = m_State[index];
             uint savedLOD = savedState & s_bLODMask;
             savedLOD = (savedLOD >> s_LODOffset);
-            uint savedAlive = savedState & s_bAliveMask;
-            bool bSavedAlive = (savedAlive == (1u << s_AliveOffset));
-            // bool isAliveChanged = false;
+            uint savedActive = savedState & s_bActiveMask;
+            bool bSavedActive = (savedActive == (1u << s_ActiveOffset));
+            // bool isActiveChanged = false;
 
-            if (isAlive)
+            if (isActive)
             {
                 uint stateWithoutLOD = (savedState & ~s_bLODMask);
                 savedState = (stateWithoutLOD | (uint)(lod << s_LODOffset));
-                savedState |= (1u << s_AliveOffset);
+                savedState |= (1u << s_ActiveOffset);
             }
             else if (savedLOD == (uint)lod) // inactive
             {
-                savedState &= ~(1u << s_AliveOffset);
+                savedState &= ~(1u << s_ActiveOffset);
             }
-            else if (bSavedAlive) // set inactive with different lod level
+            else if (bSavedActive) // set inactive with different lod level
             {
                 // nothing
             }
@@ -344,26 +353,26 @@
             m_State[index] = savedState;
         }
 
-        public unsafe bool IsAlive(int index)
+        public unsafe bool IsActive(int index)
         {
             uint savedState = m_State[index];
-            uint savedAlive = savedState & s_bAliveMask;
-            bool bSavedAlive = (savedAlive == (1u << s_AliveOffset));
-            return bSavedAlive;
+            uint savedActive = savedState & s_bActiveMask;
+            bool bSavedActive = (savedActive == (1u << s_ActiveOffset));
+            return bSavedActive;
         }
 
-        public unsafe bool IsAlive(int index, int lod)
+        public unsafe bool IsActive(int index, uint lod)
         {
             uint savedState = m_State[index];
             uint savedLOD = savedState & s_bLODMask;
             savedLOD = (savedLOD >> s_LODOffset);
-            bool savedAlive = IsAlive(index);
+            bool savedActive = IsActive(index);
 
             if (savedLOD == (uint)lod)
             {
-                return savedAlive;
+                return savedActive;
             }
-            else if (savedAlive)
+            else if (savedActive)
             {
                 return false;
             }
@@ -373,22 +382,22 @@
             }
         }
 
-        public unsafe (int, EGetNextAliveIndexInfo) GetNextAliveIndex()
+        public unsafe (int, EGetNextActiveIndexInfo) GetNextActiveIndex()
         {
             int index = -1;
-            if (AliveCount >= m_BatchDescription.MaxInstanceCount)
-                return (index, EGetNextAliveIndexInfo.NeedResize); // need resize
-            else if (AliveCount == InstanceCount)
-                index = AliveCount; // because index starts at 0 => AliveCount = index + 1
-            else // AliveCount < InstanceCount
+            if (ActiveCount >= m_BatchDescription.MaxInstanceCount)
+                return (index, EGetNextActiveIndexInfo.NeedResize); // need resize
+            else if (ActiveCount == InstanceCount)
+                index = ActiveCount; // because index starts at 0 => ActiveCount = index + 1
+            else // ActiveCount < InstanceCount
             {
                 for (int i = 0; i < InstanceCount; i++)
                 {
-                    if (!IsAlive(i)) return (i, EGetNextAliveIndexInfo.None);
+                    if (!IsActive(i)) return (i, EGetNextActiveIndexInfo.None);
                 }
             }
 
-            return (index, EGetNextAliveIndexInfo.NeedExtentInstanceCount);
+            return (index, EGetNextActiveIndexInfo.NeedExtentInstanceCount);
         }
 
         #endregion

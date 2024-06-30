@@ -16,7 +16,7 @@ namespace BRGContainer.Runtime
     /// The handle of a batch.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct BatchHandle
+    public readonly struct LODGroupBatchHandle
     {
         private readonly ContainerID m_ContainerId;
         internal readonly BatchLODGroupID m_BatchLODGroupID;
@@ -28,18 +28,22 @@ namespace BRGContainer.Runtime
         [NativeDisableContainerSafetyRestriction]
         private readonly BatchDescription m_Description;
 
+        private readonly uint m_LODCount;
+
         private readonly bool isCreated;
 
         public bool IsCreated => isCreated;
         public bool IsAlive => IsCreated && CheckIfIsAlive(m_ContainerId, m_BatchLODGroupID);
         public unsafe int InstanceCount => (IntPtr)m_InstanceCount == IntPtr.Zero ? 0 : *m_InstanceCount;
         public BatchDescription Description => m_Description;
+        public uint LODCount => m_LODCount;
 
         // [ExcludeFromBurstCompatTesting("BatchHandle creating is unburstable")]
-        internal unsafe BatchHandle(ContainerID containerId, BatchLODGroupID batchLODGroupID, NativeArray<float4> buffer, int* instanceCount, ref BatchDescription description)
+        internal unsafe LODGroupBatchHandle(ContainerID containerId, BatchLODGroupID batchLODGroupID, uint lodCount, NativeArray<float4> buffer, int* instanceCount, ref BatchDescription description)
         {
             m_ContainerId = containerId;
             m_BatchLODGroupID = batchLODGroupID;
+            m_LODCount = lodCount;
             
             m_Buffer = buffer;
             m_InstanceCount = instanceCount;
@@ -167,32 +171,32 @@ namespace BRGContainer.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool CheckIfIsAlive(ContainerID containerId, BatchLODGroupID batchLODGroupID)
         {
-            return BRGContainer.IsAlive(containerId, batchLODGroupID);
+            return BRGContainer.IsActive(containerId, batchLODGroupID);
         }
         
-        public bool IsInstanceAlive(int index)
+        public bool IsInstanceActive(int index)
         {
-            return BRGContainer.IsAlive(m_ContainerId, m_BatchLODGroupID, index);
+            return BRGContainer.IsActive(m_ContainerId, m_BatchLODGroupID, index);
         }
         
-        public void SetInstanceAlive(int index, bool alive) // all lod inalive
+        public bool IsInstanceActive(int index, uint lod)
         {
-            BRGContainer.SetAlive(m_ContainerId, m_BatchLODGroupID, index, alive);
+            return BRGContainer.IsActive(m_ContainerId, m_BatchLODGroupID, index, lod);
+        }
+        
+        public void SetInstanceInactive(int index) // all lod inactive
+        {
+            BRGContainer.SetInactive(m_ContainerId, m_BatchLODGroupID, index);
         }
 
-        public void SetInstanceAlive(int index, uint lod, bool alive)
+        public void SetInstanceActive(int index, uint lod, bool active)
         {
-            BRGContainer.SetAlive(m_ContainerId, m_BatchLODGroupID, index, lod, alive);
-        }
-        
-        public void SetPosition(int index, float3 pos)
-        {
-            BRGContainer.SetPosition(m_ContainerId, m_BatchLODGroupID, index, pos);
+            BRGContainer.SetActive(m_ContainerId, m_BatchLODGroupID, index, lod, active);
         }
 
-        public int AddAliveInstance(ref BatchHandle hanlde)
+        public int AddAliveInstance(ref LODGroupBatchHandle hanlde)
         {
-            return BRGContainer.AddAliveInstance(m_ContainerId, m_BatchLODGroupID, ref hanlde);
+            return BRGContainer.AddActiveInstance(m_ContainerId, m_BatchLODGroupID, ref hanlde);
         }
     }
 }

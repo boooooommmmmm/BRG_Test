@@ -44,6 +44,5 @@ partial struct BRGContainerTestRandomMoveJob : IJobParallelFor
         curPos += dir * m_DeltaTime;
         
         InstanceDataBuffer.SetTRS(index, curPos, Quaternion.LookRotation(dir), Vector3.one);
-        BatchGroup.SetPosition(index, curPos);
     }
 }

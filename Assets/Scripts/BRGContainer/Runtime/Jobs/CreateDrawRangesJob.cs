@@ -26,7 +26,7 @@
                 return;
             
             var batchGroup = BatchGroups[index];
-            var rendererDescription = batchGroup.BatchRendererData.Description;
+            var rendererDescription = batchGroup.BatchRendererData.RendererDescription;
             
             var drawRange = new BatchDrawRange
             {

@@ -15,18 +15,18 @@ namespace BRGContainer.Runtime
         private readonly unsafe int* visibleArray;
         private readonly unsafe int* m_InstanceCount;
 
-        private readonly Allocator m_Allocator;
+        private Allocator m_Allocator;
 
         public readonly unsafe int* VisibleArrayPtr() => visibleArray;
 
         public readonly unsafe BatchGroup this[int index] => m_BatchGroups[index];
 
-        public unsafe BatchLOD(uint lodIndex, int submeshCount, int maxInstanceCount, int* instanceCount, ref BatchDescription description, in BatchRendererData rendererData, Allocator allocator)
+        public unsafe BatchLOD(in BatchDescription description, in RendererDescription rendererDescription, in BatchWorldObjectLODData worldObjectLODData, uint lodIndex, int maxInstanceCount, int* instanceCount,  Allocator allocator)
         {
             m_Allocator = allocator;
             
             m_LODIndex = lodIndex;
-            m_SubmeshCount = submeshCount;
+            m_SubmeshCount = worldObjectLODData.SubmeshCount;
             m_MaxInstanceCount = maxInstanceCount;
             m_InstanceCount = instanceCount;
             
@@ -35,7 +35,8 @@ namespace BRGContainer.Runtime
 
             for (int submeshIndex = 0; submeshIndex < m_SubmeshCount; submeshIndex++)
             {
-                m_BatchGroups[submeshIndex] = new BatchGroup(ref description, in rendererData, m_Allocator);
+                BatchWorldObjectSubMeshData woldObjectSubMeshData = worldObjectLODData[submeshIndex];
+                m_BatchGroups[submeshIndex] = new BatchGroup(in description, in rendererDescription, in woldObjectSubMeshData.m_RendererData,  m_Allocator);
             }
         }
 
@@ -45,8 +46,13 @@ namespace BRGContainer.Runtime
             {
                 m_BatchGroups[submeshIndex].Dispose();
             }
-            UnsafeUtility.Free(m_BatchGroups, m_Allocator);
-            UnsafeUtility.Free(visibleArray, m_Allocator);
+
+            if (m_Allocator > Allocator.None)
+            {
+                UnsafeUtility.Free(m_BatchGroups, m_Allocator);
+                UnsafeUtility.Free(visibleArray, m_Allocator);
+                m_Allocator = Allocator.Invalid;
+            }
         }
 
         [BurstDiscard]

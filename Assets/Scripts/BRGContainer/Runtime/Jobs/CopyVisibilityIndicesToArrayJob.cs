@@ -14,37 +14,44 @@
     {
         [ReadOnly, NativeDisableContainerSafetyRestriction]
         public NativeArray<BatchGroup> BatchGroups;
-        [ReadOnly]
-        public NativeArray<int> VisibleCountPerBatch;
+
+        public NativeArray<BatchLODGroup> BatchLODGroups;
+        [ReadOnly] public NativeArray<int> VisibleCountPerBatch;
         // [ReadOnly] public NativeArray<int> VisibleIndices;
-        
+
         [ReadOnly] public NativeArray<BatchGroupDrawRange> DrawRangesData;
 
-        [NativeDisableUnsafePtrRestriction]
-        public unsafe BatchCullingOutputDrawCommands* OutputDrawCommands;
-        
+        [NativeDisableUnsafePtrRestriction] public unsafe BatchCullingOutputDrawCommands* OutputDrawCommands;
+
         public unsafe void Execute(int index)
         {
             var drawRangeData = DrawRangesData[index];
-            if(drawRangeData.Count == 0)
+            if (drawRangeData.Count == 0)
                 return; // there is no any visible batches
-            
-            var batchGroup = BatchGroups[index];
-            var windowCount = batchGroup.GetWindowCount();
-            var visibleOffset = drawRangeData.VisibleIndexOffset;
-            var visibleIndices = batchGroup.VisiblesPtr; 
 
-            var batchStartIndex = drawRangeData.BatchIndex;
-            for (var i = 0; i < windowCount; i++)
+            // var batchGroup = BatchGroups[index];
+            var batchLODGroup = BatchLODGroups[index];
+            for (uint lodIndex = 0u; lodIndex < batchLODGroup.LODCount; lodIndex++)
             {
-                var batchIndex = batchStartIndex + i;
-                var visibleCountPerBatch = VisibleCountPerBatch[batchIndex];
-                if (visibleCountPerBatch == 0) // there is no any visible instances for this batch
-                    continue;
+                // var windowCount = batchGroup.GetWindowCount();
+                var windowCount = 1;
+                var visibleOffset = drawRangeData.VisibleIndexOffset;
+                // var visibleIndices = batchGroup.VisiblesPtr; 
+                var visibleIndices = batchLODGroup[lodIndex].VisibleArrayPtr();
 
-                UnsafeUtility.MemCpy((void*)((IntPtr) OutputDrawCommands->visibleInstances + visibleOffset * UnsafeUtility.SizeOf<int>()), visibleIndices, visibleCountPerBatch * UnsafeUtility.SizeOf<int>());
+                var batchStartIndex = drawRangeData.BatchIndex;
+                for (var i = 0; i < windowCount; i++)
+                {
+                    var batchIndex = batchStartIndex + i;
+                    var visibleCountPerBatch = VisibleCountPerBatch[batchIndex];
+                    if (visibleCountPerBatch == 0) // there is no any visible instances for this batch
+                        continue;
 
-                visibleOffset += visibleCountPerBatch;
+                    UnsafeUtility.MemCpy((void*)((IntPtr)OutputDrawCommands->visibleInstances + visibleOffset * UnsafeUtility.SizeOf<int>()), visibleIndices,
+                        visibleCountPerBatch * UnsafeUtility.SizeOf<int>());
+
+                    visibleOffset += visibleCountPerBatch;
+                }
             }
         }
     }

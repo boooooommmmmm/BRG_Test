@@ -86,26 +86,26 @@ namespace BRGContainer.Runtime
         //     return new BatchHandle(m_ContainerId, batchId, batchGroup.GetNativeBuffer(), batchGroup.m_InstanceCount, ref batchDescription);
         // }
         
-        public unsafe BatchHandle AddBatch(ref BatchDescription batchDescription, [NotNull] Mesh mesh, ushort subMeshIndex, [NotNull] Material material, in RendererDescription rendererDescription)
+        [BRGMethodThreadUnsafe]
+        public unsafe LODGroupBatchHandle AddLODGroup(ref BatchDescription batchDescription, in RendererDescription rendererDescription, ref  BatchWorldObjectData worldObjectData)
         {
             GraphicsBuffer graphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, batchDescription.TotalBufferSize);
-            BatchRendererData rendererData = CreateRendererData(rendererDescription, mesh, subMeshIndex, material);
 
-            CreateBatchLODGroupID(out BatchLODGroupID batchLODGroupID);
-            BatchLODGroup batchLODGroup = CreateBatchLODGroup(ref batchDescription, ref rendererData, in batchLODGroupID, Allocator.Persistent);
+            GetNewBatchLODGroupID(out BatchLODGroupID batchLODGroupID);
+            BatchLODGroup batchLODGroup = CreateBatchLODGroup(in batchDescription, in rendererDescription, in batchLODGroupID, ref worldObjectData, Allocator.Persistent);
             
             batchLODGroup.Register(m_BatchRendererGroup, graphicsBuffer.bufferHandle);
             
             m_GraphicsBuffers.Add(batchLODGroupID, graphicsBuffer);
             m_LODGroups.Add(batchLODGroupID, batchLODGroup);
 
-            return new BatchHandle(m_ContainerId, batchLODGroupID, batchLODGroup.GetNativeBuffer(), batchLODGroup.m_InstanceCount, ref batchDescription);
+            return new LODGroupBatchHandle(m_ContainerId, batchLODGroupID, batchLODGroup.LODCount, batchLODGroup.GetNativeBuffer(), batchLODGroup.m_InstanceCount, ref batchDescription);
         }
 
 
-        public void RemoveBatch(in BatchHandle batchHandle)
+        public void RemoveBatch(in LODGroupBatchHandle lodGroupBatchHandle)
         {
-            DestroyBatch(m_ContainerId, batchHandle.m_BatchLODGroupID);
+            DestroyBatch(m_ContainerId, lodGroupBatchHandle.m_BatchLODGroupID);
         }
 
         // public void GetBatchData(in BatchHandle batchHandle, out BatchDescription batchDescription, out BatchRendererData batchRendererData)
@@ -211,7 +211,7 @@ namespace BRGContainer.Runtime
                 graphicsBuffer.Dispose();
         }
 
-        internal static bool IsAlive(ContainerID containerID, BatchLODGroupID batchLODGroupID)
+        internal static bool IsActive(ContainerID containerID, BatchLODGroupID batchLODGroupID)
         {
             if (!m_Containers.TryGetValue(containerID, out var container))
                 return false;
@@ -219,41 +219,43 @@ namespace BRGContainer.Runtime
             return container.m_LODGroups.ContainsKey(batchLODGroupID);
         }
         
-        internal static bool IsAlive(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index)
+        internal static bool IsActive(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index)
         {
             if (GetBatchLODGroup(containerID, batchLODGroupID, out BatchLODGroup batchLODGroup))
             {
-                return batchLODGroup.IsAlive(index);
+                return batchLODGroup.IsActive(index);
             }
 
             return false;
         }
         
-        internal static void SetAlive(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index, bool alive)
-        {
-            if (GetBatchLODGroup(containerID, batchLODGroupID,out BatchLODGroup batchLODGroup))
-            {
-                batchLODGroup.SetAlive(index, alive);
-            }
-        }
-
-        internal static void SetAlive(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index, uint lod, bool alive)
-        {
-            if (GetBatchLODGroup(containerID, batchLODGroupID,out BatchLODGroup batchLODGroup))
-            {
-                batchLODGroup.SetAlive(index, lod, alive);
-            }
-        }
-
-        internal static void SetPosition(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index, float3 position)
+        internal static bool IsActive(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index, uint lod)
         {
             if (GetBatchLODGroup(containerID, batchLODGroupID, out BatchLODGroup batchLODGroup))
             {
-                batchLODGroup.SetPosition(index, position);
+                return batchLODGroup.IsActive(index, lod);
+            }
+
+            return false;
+        }
+        
+        internal static void SetInactive(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index)
+        {
+            if (GetBatchLODGroup(containerID, batchLODGroupID,out BatchLODGroup batchLODGroup))
+            {
+                batchLODGroup.SetInactive(index);
             }
         }
 
-        internal static int AddAliveInstance(ContainerID containerID, BatchLODGroupID batchLODGroupID, ref BatchHandle batchHandle)
+        internal static void SetActive(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index, uint lod, bool active)
+        {
+            if (GetBatchLODGroup(containerID, batchLODGroupID,out BatchLODGroup batchLODGroup))
+            {
+                batchLODGroup.SetActive(index, lod, active);
+            }
+        }
+
+        internal static int AddActiveInstance(ContainerID containerID, BatchLODGroupID batchLODGroupID, ref LODGroupBatchHandle lodGroupBatchHandle)
         {
             if (!m_Containers.TryGetValue(containerID, out BRGContainer container))
             {
@@ -263,23 +265,27 @@ namespace BRGContainer.Runtime
             if (!container.m_LODGroups.TryGetValue(batchLODGroupID, out BatchLODGroup batchLODGroup))
                 return -1;
 
-            (int index, EGetNextAliveIndexInfo info) = batchLODGroup.GetNextAliveIndex();
+            (int index, EGetNextActiveIndexInfo info) = batchLODGroup.GetNextActiveIndex();
 
-            if (info == EGetNextAliveIndexInfo.None)
+            if (info == EGetNextActiveIndexInfo.None)
             {
             }
-            else if (info == EGetNextAliveIndexInfo.NeedExtentInstanceCount)
+            else
             {
-                bool batchHandleChanged = container.ExtendInstanceCount(ref batchHandle, 1);
-                batchHandle.IncreaseInstanceCount();
+                throw new Exception("Not support now");
             }
-            else if (info == EGetNextAliveIndexInfo.NeedResize)
-            {
-                bool batchHandleChanged = container.ExtendInstanceCount(ref batchHandle, 1);
-                batchLODGroup = container.GetBatchLODGroup(batchHandle.m_BatchLODGroupID);
-                batchHandle.IncreaseInstanceCount();
-                (index, info) = batchLODGroup.GetNextAliveIndex();
-            }
+            // else if (info == EGetNextActiveIndexInfo.NeedExtentInstanceCount)
+            // {
+            //     bool batchHandleChanged = container.ExtendInstanceCount(ref batchHandle, 1);
+            //     batchHandle.IncreaseInstanceCount();
+            // }
+            // else if (info == EGetNextActiveIndexInfo.NeedResize)
+            // {
+            //     bool batchHandleChanged = container.ExtendInstanceCount(ref batchHandle, 1);
+            //     batchLODGroup = container.GetBatchLODGroup(batchHandle.m_BatchLODGroupID);
+            //     batchHandle.IncreaseInstanceCount();
+            //     (index, info) = batchLODGroup.GetNextActiveIndex();
+            // }
             
             return index;
         }

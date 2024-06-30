@@ -16,16 +16,14 @@
         public BatchMeshID MeshID;
         public BatchMaterialID MaterialID;
         public uint SubMeshIndex;
-
-        public readonly RendererDescription Description;
+        public RendererDescription RendererDescription;
         
         public BatchRendererData(in RendererDescription description, BatchMeshID meshID, BatchMaterialID materialID, uint submeshIndex = 0)
         {
-            Description = description;
-
             MeshID = meshID;
             MaterialID = materialID;
             SubMeshIndex = submeshIndex;
+            RendererDescription = description;
         }
 
         public void Dispose()

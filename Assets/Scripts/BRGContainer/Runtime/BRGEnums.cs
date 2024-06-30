@@ -9,7 +9,7 @@
         ViewCount = 4
     }
 
-    public enum EGetNextAliveIndexInfo : int
+    public enum EGetNextActiveIndexInfo : int
     {
         None = 0,
         NeedResize = 1,

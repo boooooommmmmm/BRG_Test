@@ -7,7 +7,8 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetWindowCount(this BatchGroup batchGroup)
         {
-            return GetWindowCount(batchGroup, batchGroup.InstanceCount);
+            return 1;
+            // return GetWindowCount(batchGroup, batchGroup.InstanceCount);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -22,14 +23,17 @@
         public static int GetInstanceCountPerWindow(this BatchGroup batchGroup, int subBatchIndex)
         {
             var description = batchGroup.m_BatchDescription;
-            var batchCount = GetWindowCount(batchGroup);
-            if (subBatchIndex >= batchCount)
-                return 0;
-
-            if (subBatchIndex == batchCount - 1)
-                return description.MaxInstancePerWindow - (batchCount * description.MaxInstancePerWindow - batchGroup.InstanceCount);
-
             return description.MaxInstancePerWindow;
+            
+            // var description = batchGroup.m_BatchDescription;
+            // var batchCount = GetWindowCount(batchGroup);
+            // if (subBatchIndex >= batchCount)
+            //     return 0;
+            //
+            // if (subBatchIndex == batchCount - 1)
+            //     return description.MaxInstancePerWindow - (batchCount * description.MaxInstancePerWindow - batchGroup.InstanceCount);
+            //
+            // return description.MaxInstancePerWindow;
         }
     }
 }
