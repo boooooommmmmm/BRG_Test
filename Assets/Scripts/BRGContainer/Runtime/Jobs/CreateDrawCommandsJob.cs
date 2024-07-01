@@ -13,11 +13,9 @@
     internal struct CreateDrawCommandsJob : IJobFor
     {
         [ReadOnly, NativeDisableContainerSafetyRestriction]
-        public NativeArray<BatchGroup> BatchGroups;
+        public NativeArray<BatchLODGroup> BatchLODGroups;
 
         [ReadOnly] public NativeArray<BatchGroupDrawRange> DrawRangeData;
-        [ReadOnly] public NativeArray<int> VisibleCountPerBatch;
-        // [ReadOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction] public NativeArray<BatchInstanceData> InstanceDataPerBatch;
 
         [NativeDisableUnsafePtrRestriction] public unsafe BatchCullingOutputDrawCommands* OutputDrawCommands;
 
@@ -27,38 +25,49 @@
             if (drawRangeData.Count == 0)
                 return;
 
-            var batchGroup = BatchGroups[index];
-            var subBatchCount = batchGroup.GetWindowCount();
+            var batchLODGroup = BatchLODGroups[index];
+            var subBatchCount = batchLODGroup.GetWindowCount();
+            subBatchCount = 1;
 
             var batchStartIndex = drawRangeData.BatchIndex;
             var drawCommandIndex = drawRangeData.Begin;
             var visibleOffset = drawRangeData.VisibleIndexOffset;
-            for (var i = 0; i < subBatchCount; i++)
+
+            for (uint lodIndex = 0; lodIndex < batchLODGroup.LODCount; lodIndex++)
             {
-                var batchIndex = batchStartIndex + i;
-
-                var visibleCountPerBatch = VisibleCountPerBatch[batchIndex];
-                if (visibleCountPerBatch == 0) // there is no any visible instances for this batch
+                var batchLOD = batchLODGroup[lodIndex];
+                var visibleCountPreLOD = batchLOD.VisibleCount;
+                if (visibleCountPreLOD == 0) // there is no any visible instances for this batch
                     continue;
-                var instanceCount = visibleCountPerBatch; // assume only has one subbatch
+                var instanceCount = visibleCountPreLOD; // assume only has one subBatch
 
-                var rendererData = batchGroup.BatchRendererData;
-                var batchDrawCommand = new BatchDrawCommand
+                for (uint subMeshIndex = 0; subBatchCount < batchLOD.SubMeshCount; subMeshIndex++)
                 {
-                    visibleOffset = (uint)visibleOffset,
-                    visibleCount = (uint)instanceCount,
-                    batchID = batchGroup[i],
-                    materialID = rendererData.MaterialID,
-                    meshID = rendererData.MeshID,
-                    submeshIndex = (ushort)rendererData.SubMeshIndex,
-                    splitVisibilityMask = 0xff,
-                    flags = 0,
-                    sortingPosition = 0
-                };
+                    for (var i = 0; i < subBatchCount; i++)
+                    {
+                        // var batchIndex = batchStartIndex + i;
+                        
+                        // drawCommandIndex++;
+                        // visibleOffset += instanceCount;
+                    }
 
-                OutputDrawCommands->drawCommands[drawCommandIndex] = batchDrawCommand;
-                drawCommandIndex++;
-                visibleOffset += instanceCount;
+                    var batchGroup = batchLOD[subMeshIndex];
+                    var batchDrawCommand = new BatchDrawCommand
+                    {
+                        visibleOffset = (uint)0,
+                        visibleCount = (uint)visibleCountPreLOD,
+                        batchID = batchGroup[0],
+                        materialID = batchGroup.BatchRendererData.MaterialID,
+                        meshID = batchGroup.BatchRendererData.MeshID,
+                        submeshIndex = (ushort)batchGroup.BatchRendererData.SubMeshIndex,
+                        splitVisibilityMask = 0xff,
+                        flags = 0,
+                        sortingPosition = 0
+                    };
+
+                    OutputDrawCommands->drawCommands[drawCommandIndex] = batchDrawCommand;
+                    drawCommandIndex++;
+                }
             }
         }
     }

@@ -13,20 +13,19 @@
     [BurstCompile(OptimizeFor = OptimizeFor.Performance, FloatMode = FloatMode.Fast, CompileSynchronously = true, FloatPrecision = FloatPrecision.Low, DisableSafetyChecks = true)]
     internal struct SetupDataJob : IJobParallelFor
     {
-        // [ReadOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction]
-        // public NativeArray<BatchInstanceData> InstanceDataPerBatch;
-
         [ReadOnly] public int BatchGroupIndex;
-        
-        [WriteOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction]
-        public NativeArray<int> VisibleInstanceCount;
+
+        [WriteOnly, NativeDisableContainerSafetyRestriction]
+        public BatchLODGroup BatchLODGroup;
 
         public unsafe void Execute(int index)
         {
-            // ref BatchInstanceData instanceIndices = ref UnsafeUtility.ArrayElementAsRef<BatchInstanceData>(InstanceDataPerBatch.GetUnsafePtr(), BatchGroupIndex);
-            // instanceIndices.VisibleInstanceCount = 0;
-
-            VisibleInstanceCount[BatchGroupIndex] = 0;
+            for (int lodIndex = 0; lodIndex < (int)BatchLODGroup.LODCount; lodIndex++)
+            {
+                BatchLOD* batchLOD = BatchLODGroup.GetByRef(lodIndex);
+                Interlocked.Exchange(ref UnsafeUtility.AsRef<int>((*batchLOD).visibleCount) , 0);
+                // no need clear visible array, will be overwrote in culling phase.
+            }
         }
     }
 }

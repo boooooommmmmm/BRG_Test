@@ -1,4 +1,5 @@
-﻿using Unity.Burst;
+﻿using System.Runtime.CompilerServices;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
@@ -13,13 +14,22 @@ namespace BRGContainer.Runtime
         private readonly int m_MaxInstanceCount;
         private readonly unsafe BatchGroup* m_BatchGroups;
         private readonly unsafe int* visibleArray;
+        internal unsafe int* visibleCount;
         private readonly unsafe int* m_InstanceCount;
 
         private Allocator m_Allocator;
 
         public readonly unsafe int* VisibleArrayPtr() => visibleArray;
-
+        public readonly uint SubMeshCount => (uint)m_SubmeshCount;
         public readonly unsafe BatchGroup this[int index] => m_BatchGroups[index];
+        public readonly unsafe BatchGroup this[uint index] => m_BatchGroups[(uint)index];
+        public readonly unsafe BatchGroup* GetByRef(int index) => m_BatchGroups + index;
+        
+        public readonly unsafe int VisibleCount
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => *visibleCount;
+        }
 
         public unsafe BatchLOD(in BatchDescription description, in RendererDescription rendererDescription, in BatchWorldObjectLODData worldObjectLODData, uint lodIndex, int maxInstanceCount, int* instanceCount,  Allocator allocator)
         {
@@ -32,6 +42,9 @@ namespace BRGContainer.Runtime
             
             m_BatchGroups = (BatchGroup*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchGroup * m_SubmeshCount, BRGConstants.AlignOfBatchGroup, m_Allocator);
             visibleArray = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt * m_MaxInstanceCount, BRGConstants.AlignOfInt, m_Allocator);
+            
+            visibleCount = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt, BRGConstants.AlignOfInt, m_Allocator);
+            UnsafeUtility.MemClear(visibleCount, BRGConstants.SizeOfInt);
 
             for (int submeshIndex = 0; submeshIndex < m_SubmeshCount; submeshIndex++)
             {
@@ -51,6 +64,7 @@ namespace BRGContainer.Runtime
             {
                 UnsafeUtility.Free(m_BatchGroups, m_Allocator);
                 UnsafeUtility.Free(visibleArray, m_Allocator);
+                UnsafeUtility.Free(visibleCount, m_Allocator);
                 m_Allocator = Allocator.Invalid;
             }
         }

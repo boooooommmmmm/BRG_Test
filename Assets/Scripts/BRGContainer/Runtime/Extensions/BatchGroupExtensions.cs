@@ -20,9 +20,9 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetInstanceCountPerWindow(this BatchGroup batchGroup, int subBatchIndex)
+        public static int GetInstanceCountPerWindow(this BatchLODGroup batchLODGroup, int subBatchIndex)
         {
-            var description = batchGroup.m_BatchDescription;
+            var description = batchLODGroup.m_BatchDescription;
             return description.MaxInstancePerWindow;
             
             // var description = batchGroup.m_BatchDescription;

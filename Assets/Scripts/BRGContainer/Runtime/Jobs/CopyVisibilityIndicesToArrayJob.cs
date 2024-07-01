@@ -13,11 +13,7 @@
     internal struct CopyVisibilityIndicesToArrayJob : IJobFor
     {
         [ReadOnly, NativeDisableContainerSafetyRestriction]
-        public NativeArray<BatchGroup> BatchGroups;
-
         public NativeArray<BatchLODGroup> BatchLODGroups;
-        [ReadOnly] public NativeArray<int> VisibleCountPerBatch;
-        // [ReadOnly] public NativeArray<int> VisibleIndices;
 
         [ReadOnly] public NativeArray<BatchGroupDrawRange> DrawRangesData;
 
@@ -33,24 +29,29 @@
             var batchLODGroup = BatchLODGroups[index];
             for (uint lodIndex = 0u; lodIndex < batchLODGroup.LODCount; lodIndex++)
             {
+                var batchLOD = batchLODGroup[lodIndex];
                 // var windowCount = batchGroup.GetWindowCount();
                 var windowCount = 1;
                 var visibleOffset = drawRangeData.VisibleIndexOffset;
-                // var visibleIndices = batchGroup.VisiblesPtr; 
-                var visibleIndices = batchLODGroup[lodIndex].VisibleArrayPtr();
+                var visibleIndices = batchLOD.VisibleArrayPtr();
+                var visibleCount = batchLOD.VisibleCount;
 
                 var batchStartIndex = drawRangeData.BatchIndex;
-                for (var i = 0; i < windowCount; i++)
+                // for (var i = 0; i < windowCount; i++)
+                // {
+                //     var batchIndex = batchStartIndex + i;
+                //     var visibleCountPerBatch = VisibleCountPerBatch[batchIndex];
+                //
+                //
+                //     visibleOffset += visibleCountPerBatch;
+                // }
+                
+                if (visibleCount == 0) // there is no any visible instances for this batch
+                    continue;
+
+                for (int subMeshIndex = 0; subMeshIndex < batchLOD.SubMeshCount; subMeshIndex++)
                 {
-                    var batchIndex = batchStartIndex + i;
-                    var visibleCountPerBatch = VisibleCountPerBatch[batchIndex];
-                    if (visibleCountPerBatch == 0) // there is no any visible instances for this batch
-                        continue;
-
-                    UnsafeUtility.MemCpy((void*)((IntPtr)OutputDrawCommands->visibleInstances + visibleOffset * UnsafeUtility.SizeOf<int>()), visibleIndices,
-                        visibleCountPerBatch * UnsafeUtility.SizeOf<int>());
-
-                    visibleOffset += visibleCountPerBatch;
+                    UnsafeUtility.MemCpy((void*)((IntPtr)OutputDrawCommands->visibleInstances + (visibleOffset + subMeshIndex) * UnsafeUtility.SizeOf<int>()), visibleIndices, visibleCount * UnsafeUtility.SizeOf<int>());
                 }
             }
         }

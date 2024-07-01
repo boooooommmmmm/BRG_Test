@@ -17,15 +17,13 @@ namespace BRGContainer.Runtime
     {
         [ReadOnly, NativeDisableParallelForRestriction, NativeDisableContainerSafetyRestriction]
         public NativeArray<Plane> CullingPlanes;
-
-        [ReadOnly] public int BatchGroupIndex;
-        [ReadOnly, NativeDisableUnsafePtrRestriction] public unsafe float3* Positions;
-        [ReadOnly] public float3 Extents;
-
-        [WriteOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction]
-        public NativeArray<int> VisibleInstanceCount;
         
-        [WriteOnly, NativeDisableUnsafePtrRestriction] public unsafe int* VisibleIndices;
+        [WriteOnly, NativeDisableContainerSafetyRestriction]
+        public BatchLODGroup BatchLODGroup;
+
+        [ReadOnly] public int BatchLODGroupIndex;
+        [ReadOnly] public float3 Extents;
+        
         [WriteOnly, NativeDisableUnsafePtrRestriction] public unsafe uint* StatePtr;
 
         public int DataOffset;
@@ -34,15 +32,20 @@ namespace BRGContainer.Runtime
 
         public unsafe void Execute(int index)
         {
-            uint state = StatePtr[index];
-            int aliveMaskPos = 0;
-            uint aliveMask = state & (1u << aliveMaskPos);
-            bool isAlive = aliveMask > 0u ? true : false;
-            if (!isAlive)
-                return;
-            
-            float3 pos = Positions[index];
+            // uint state = StatePtr[index];
+            // int aliveMaskPos = 4;
+            // uint aliveMask = state & (1u << aliveMaskPos);
+            // bool isAlive = aliveMask > 0u ? true : false;
+            bool isAlive = BatchLODGroup.IsActive(index);
 
+            if (!isAlive)
+            {
+                return;
+            }
+            
+            PackedMatrix matrix = UnsafeUtility.ArrayElementAsRef<PackedMatrix>(BatchLODGroup.DataBuffer, index);
+            float3 pos = matrix.GetPosition();
+            
             for (var i = 0; i < PLANE_COUNT; i++)
             {
                 var plane = CullingPlanes[i];
@@ -55,9 +58,12 @@ namespace BRGContainer.Runtime
                 if (distance + radius <= 0)
                     return;
             }
-
-            int count = Interlocked.Increment(ref UnsafeUtility.ArrayElementAsRef<int>(VisibleInstanceCount.GetUnsafePtr(), BatchGroupIndex));
-            VisibleIndices[count - 1] = index;
+            
+            //increase count for target lod level
+            uint lodIndex = BatchLODGroup.GetCurrentLOD(index);
+            BatchLOD* batchLOD = BatchLODGroup.GetByRef((int)lodIndex);
+            int count = Interlocked.Increment(ref UnsafeUtility.AsRef<int>((*batchLOD).visibleCount));
+            (*batchLOD).VisibleArrayPtr()[count - 1] = index;
         }
     }
 }

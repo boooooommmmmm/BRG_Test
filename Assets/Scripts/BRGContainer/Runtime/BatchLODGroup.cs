@@ -54,15 +54,18 @@
 
         public readonly unsafe uint* StatePtr => m_State;
 
+        public readonly unsafe float4* DataBuffer => m_DataBuffer;
+
         public readonly BatchDescription BatchDescription => m_BatchDescription;
 
-        public readonly unsafe BatchLOD this[uint index] => m_BatchLODs[(int)index]; 
+        public readonly unsafe BatchLOD this[uint index] => m_BatchLODs[(int)index];
 
         public readonly unsafe int InstanceCount
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => *m_InstanceCount;
         }
+        public unsafe BatchLOD* GetByRef(int index) => m_BatchLODs + index;
 
 
         public unsafe BatchLODGroup(in BatchDescription batchDescription, in RendererDescription rendererDescription, in BatchLODGroupID batchLODGroupID, in BatchWorldObjectData worldObjectData, Allocator allocator)
@@ -214,6 +217,11 @@
         //     return nativeArray;
         // }
 
+        public int GetWindowCount()
+        {
+            return BatchDescription.WindowCount;
+        }
+
         public unsafe void Dispose()
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
@@ -306,6 +314,14 @@
 //         }
 
         #region Get/Set State functions
+
+        public unsafe uint GetCurrentLOD(int index)
+        {
+            uint savedState = m_State[index];
+            uint savedLOD = savedState & s_bLODMask;
+            uint lod = (savedLOD >> s_LODOffset);
+            return lod;
+        }
 
         public unsafe void SetInactive(int index)
         {

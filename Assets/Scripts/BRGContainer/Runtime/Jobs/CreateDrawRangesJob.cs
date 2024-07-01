@@ -12,7 +12,7 @@
     internal struct CreateDrawRangesJob : IJobFor
     {
         [ReadOnly, NativeDisableContainerSafetyRestriction]
-        public NativeArray<BatchGroup> BatchGroups;
+        public NativeArray<BatchLODGroup> BatchLODGroups;
         [ReadOnly]
         public NativeArray<BatchGroupDrawRange> DrawRangeData;
 
@@ -25,8 +25,8 @@
             if(drawRangeData.Count == 0)
                 return;
             
-            var batchGroup = BatchGroups[index];
-            var rendererDescription = batchGroup.BatchRendererData.RendererDescription;
+            var batchGroup = BatchLODGroups[index];
+            var rendererDescription = batchGroup.RendererDescription;
             
             var drawRange = new BatchDrawRange
             {
