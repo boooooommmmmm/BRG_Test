@@ -101,19 +101,24 @@ namespace BRGContainer.Runtime
         
 
         [BurstDiscard]
-        public unsafe void Register([NotNull] BatchRendererGroup batchRendererGroup, GraphicsBufferHandle bufferHandle, NativeArray<MetadataValue> metadataValues)
+        public unsafe int Register([NotNull] BatchRendererGroup batchRendererGroup, GraphicsBufferHandle bufferHandle, NativeArray<MetadataValue> metadataValues)
         {
+            int registBatchCount = 0;
             for (var i = 0; i < m_BatchDescription.WindowCount; i++)
             {
                 var offset = (uint)(i * m_BatchDescription.AlignedWindowSize);
                 var batchId = batchRendererGroup.AddBatch(metadataValues, bufferHandle, offset, m_BatchDescription.WindowSize);
                 m_Batches[i] = batchId;
+                registBatchCount++;
             }
+
+            return registBatchCount;
         }
         
         [BurstDiscard]
-        public unsafe void Unregister(BatchRendererGroup batchRendererGroup)
+        public unsafe int Unregister(BatchRendererGroup batchRendererGroup)
         {
+            int removeBatchCount = 0;
             for (var i = 0; i < WindowCount; i++)
             {
                 batchRendererGroup.RemoveBatch(m_Batches[i]);
@@ -123,7 +128,10 @@ namespace BRGContainer.Runtime
                     batchRendererGroup.UnregisterMesh(BatchRendererData.MeshID);
                 if (BatchRendererData.MaterialID != BatchMaterialID.Null)
                     batchRendererGroup.UnregisterMaterial(BatchRendererData.MaterialID);
+                removeBatchCount++;
             }
+
+            return removeBatchCount;
         }
         
         public unsafe void Dispose()

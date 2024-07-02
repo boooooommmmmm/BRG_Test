@@ -13,38 +13,46 @@
     {
         [ReadOnly, NativeDisableContainerSafetyRestriction]
         public NativeArray<BatchLODGroup> BatchLODGroups;
-        [ReadOnly]
-        public NativeArray<BatchGroupDrawRange> DrawRangeData;
-
+        
         [NativeDisableUnsafePtrRestriction]
         public unsafe BatchCullingOutputDrawCommands* OutputDrawCommands;
         
         public unsafe void Execute(int index)
         {
-            var drawRangeData = DrawRangeData[index];
-            if(drawRangeData.Count == 0)
-                return;
-            
-            var batchGroup = BatchLODGroups[index];
-            var rendererDescription = batchGroup.RendererDescription;
-            
-            var drawRange = new BatchDrawRange
-            {
-                drawCommandsBegin = (uint) drawRangeData.Begin,
-                drawCommandsCount = (uint) drawRangeData.Count,
-                filterSettings = new BatchFilterSettings
-                {
-                    renderingLayerMask = rendererDescription.RenderingLayerMask,
-                    layer = rendererDescription.Layer,
-                    motionMode = rendererDescription.MotionMode,
-                    shadowCastingMode = rendererDescription.ShadowCastingMode,
-                    receiveShadows = rendererDescription.ReceiveShadows,
-                    staticShadowCaster = rendererDescription.StaticShadowCaster,
-                    allDepthSorted = false
-                }
-            };
+            ref var batchLODGroup = ref UnsafeUtility.ArrayElementAsRef<BatchLODGroup>(BatchLODGroups.GetUnsafePtr(), index);
 
-            OutputDrawCommands->drawRanges[index + drawRangeData.IndexOffset] = drawRange;
+            var rendererDescription = batchLODGroup.RendererDescription;
+
+            for (uint lodIndex = 0; lodIndex < batchLODGroup.LODCount; lodIndex++)
+            {
+                ref var batchLOD = ref UnsafeUtility.ArrayElementAsRef<BatchLOD>(batchLODGroup.m_BatchLODs, (int)lodIndex);
+
+                if (batchLOD.VisibleCount == 0)
+                {
+                    continue;
+                }
+
+                int drawRangeBeginIndex = batchLOD.m_DrawBatchIndex;
+                for (uint subMeshIndex = 0; subMeshIndex < batchLOD.SubMeshCount; subMeshIndex++)
+                {
+                    var drawRange = new BatchDrawRange
+                    {
+                        drawCommandsBegin = (uint) (drawRangeBeginIndex + (int)subMeshIndex),
+                        drawCommandsCount = (uint) 1,
+                        filterSettings = new BatchFilterSettings
+                        {
+                            renderingLayerMask = rendererDescription.RenderingLayerMask,
+                            layer = rendererDescription.Layer,
+                            motionMode = rendererDescription.MotionMode,
+                            shadowCastingMode = rendererDescription.ShadowCastingMode,
+                            receiveShadows = rendererDescription.ReceiveShadows,
+                            staticShadowCaster = rendererDescription.StaticShadowCaster,
+                            allDepthSorted = false
+                        }
+                    };
+                    OutputDrawCommands->drawRanges[drawRangeBeginIndex + (int)subMeshIndex] = drawRange;
+                }
+            }
         }
     }
 }

@@ -6,21 +6,22 @@ namespace BRGContainer.Runtime
 {
     public static class BRGConstants
     {
-        internal static int SizeOfBool = UnsafeUtility.SizeOf<bool>();
-        internal static int SizeOfInt = UnsafeUtility.SizeOf<int>();
-        internal static int SizeOfUint = UnsafeUtility.SizeOf<uint>();
-        internal static int SizeOfFloat3 = UnsafeUtility.SizeOf<float3>();
-        internal static int SizeOfFloat4 = UnsafeUtility.SizeOf<float4>();
-        internal static int SizeOfBatchID = UnsafeUtility.SizeOf<BatchID>();
-        internal static int SizeOfBatchGroupID = UnsafeUtility.SizeOf<BatchLODGroupID>();
-        internal static int SizeOfBatchGroup = UnsafeUtility.SizeOf<BatchGroup>();
+        internal static readonly uint MaxLODCount = 3u;
         
+        internal static readonly int SizeOfBool = UnsafeUtility.SizeOf<bool>();
+        internal static readonly int SizeOfInt = UnsafeUtility.SizeOf<int>();
+        internal static readonly int SizeOfUint = UnsafeUtility.SizeOf<uint>();
+        internal static readonly int SizeOfFloat3 = UnsafeUtility.SizeOf<float3>();
+        internal static readonly int SizeOfFloat4 = UnsafeUtility.SizeOf<float4>();
+        internal static readonly int SizeOfBatchID = UnsafeUtility.SizeOf<BatchID>();
+        internal static readonly int SizeOfBatchGroupID = UnsafeUtility.SizeOf<BatchLODGroupID>();
+        internal static readonly int SizeOfBatchGroup = UnsafeUtility.SizeOf<BatchGroup>();
 
-        internal static int AlignOfInt = UnsafeUtility.AlignOf<int>();
-        internal static int AlignOfUint = UnsafeUtility.AlignOf<uint>();
-        internal static int AlignOfFloat4 = UnsafeUtility.AlignOf<float4>();
-        internal static int AlignOfBatchID = UnsafeUtility.AlignOf<BatchID>();
-        internal static int AlignOfBatchLODGroupID = UnsafeUtility.AlignOf<BatchLODGroupID>();
-        internal static int AlignOfBatchGroup = UnsafeUtility.AlignOf<BatchGroup>();
+        internal static readonly int AlignOfInt = UnsafeUtility.AlignOf<int>();
+        internal static readonly int AlignOfUint = UnsafeUtility.AlignOf<uint>();
+        internal static readonly int AlignOfFloat4 = UnsafeUtility.AlignOf<float4>();
+        internal static readonly int AlignOfBatchID = UnsafeUtility.AlignOf<BatchID>();
+        internal static readonly int AlignOfBatchLODGroupID = UnsafeUtility.AlignOf<BatchLODGroupID>();
+        internal static readonly int AlignOfBatchGroup = UnsafeUtility.AlignOf<BatchGroup>();
     }
 }

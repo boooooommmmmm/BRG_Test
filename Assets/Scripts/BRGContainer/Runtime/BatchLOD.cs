@@ -12,14 +12,16 @@ namespace BRGContainer.Runtime
         private readonly uint m_LODIndex;
         internal readonly int m_SubmeshCount;
         private readonly int m_MaxInstanceCount;
-        private readonly unsafe BatchGroup* m_BatchGroups;
-        private readonly unsafe int* visibleArray;
+        internal readonly unsafe BatchGroup* m_BatchGroups;
+        // private readonly unsafe int* visibleArray;
         internal unsafe int* visibleCount;
         private readonly unsafe int* m_InstanceCount;
+        internal int m_VisibleIndexStartIndex;
+        internal int m_DrawBatchIndex;
 
         private Allocator m_Allocator;
 
-        public readonly unsafe int* VisibleArrayPtr() => visibleArray;
+        // public readonly unsafe int* VisibleArrayPtr() => visibleArray;
         public readonly uint SubMeshCount => (uint)m_SubmeshCount;
         public readonly unsafe BatchGroup this[int index] => m_BatchGroups[index];
         public readonly unsafe BatchGroup this[uint index] => m_BatchGroups[(uint)index];
@@ -39,9 +41,11 @@ namespace BRGContainer.Runtime
             m_SubmeshCount = worldObjectLODData.SubmeshCount;
             m_MaxInstanceCount = maxInstanceCount;
             m_InstanceCount = instanceCount;
+            m_VisibleIndexStartIndex = 0;
+            m_DrawBatchIndex = 0;
             
             m_BatchGroups = (BatchGroup*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchGroup * m_SubmeshCount, BRGConstants.AlignOfBatchGroup, m_Allocator);
-            visibleArray = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt * m_MaxInstanceCount, BRGConstants.AlignOfInt, m_Allocator);
+            // visibleArray = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt * m_MaxInstanceCount, BRGConstants.AlignOfInt, m_Allocator);
             
             visibleCount = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt, BRGConstants.AlignOfInt, m_Allocator);
             UnsafeUtility.MemClear(visibleCount, BRGConstants.SizeOfInt);
@@ -63,28 +67,34 @@ namespace BRGContainer.Runtime
             if (m_Allocator > Allocator.None)
             {
                 UnsafeUtility.Free(m_BatchGroups, m_Allocator);
-                UnsafeUtility.Free(visibleArray, m_Allocator);
+                // UnsafeUtility.Free(visibleArray, m_Allocator);
                 UnsafeUtility.Free(visibleCount, m_Allocator);
                 m_Allocator = Allocator.Invalid;
             }
         }
 
         [BurstDiscard]
-        internal unsafe void Register(BatchRendererGroup batchRendererGroup, in GraphicsBufferHandle bufferHandle, NativeArray<MetadataValue> metadataValues)
+        internal unsafe int Register(BatchRendererGroup batchRendererGroup, in GraphicsBufferHandle bufferHandle, NativeArray<MetadataValue> metadataValues)
         {
+            int registerCount = 0;
             for (int submeshIndex = 0; submeshIndex < m_SubmeshCount; submeshIndex++)
             {
-                m_BatchGroups[submeshIndex].Register(batchRendererGroup, bufferHandle, metadataValues);
+                registerCount += m_BatchGroups[submeshIndex].Register(batchRendererGroup, bufferHandle, metadataValues);
             }
+
+            return registerCount;
         }
         
         [BurstDiscard]
-        internal unsafe void Unregister(BatchRendererGroup batchRendererGroup)
+        internal unsafe int Unregister(BatchRendererGroup batchRendererGroup)
         {
+            int removeBatchCount = 0;
             for (int submeshIndex = 0; submeshIndex < m_SubmeshCount; submeshIndex++)
             {
-                m_BatchGroups[submeshIndex].Unregister(batchRendererGroup);
+                removeBatchCount += m_BatchGroups[submeshIndex].Unregister(batchRendererGroup);
             }
+
+            return removeBatchCount;
         }
         
         

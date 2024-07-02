@@ -10,82 +10,65 @@
 
     [StructLayout(LayoutKind.Sequential)]
     [BurstCompile(OptimizeFor = OptimizeFor.Performance, FloatMode = FloatMode.Fast, CompileSynchronously = true, FloatPrecision = FloatPrecision.Low, DisableSafetyChecks = true)]
-    internal struct ComputeDrawCountersLODGroupJob : IJob
+    internal struct ComputeDrawCountersLODGroupJob : IJobParallelFor
     {
         [WriteOnly, NativeDisableContainerSafetyRestriction]
         public NativeArray<int> DrawCounters; // 0 - is visible count, 1 - is draw ranges count, 2 - is draw command count
 
-        [NativeDisableContainerSafetyRestriction]
-        public NativeArray<BatchGroupDrawRange> DrawRangesData;
-
-        // [ReadOnly, NativeDisableContainerSafetyRestriction, NativeDisableParallelForRestriction] public NativeArray<BatchInstanceData> InstanceDataPerBatch;
-
         [ReadOnly, NativeDisableContainerSafetyRestriction]
         public NativeArray<BatchLODGroup> BatchLODGroups;
 
-        public int BatchGroupIndex;
-        public int BatchOffset;
-
-        public unsafe void Execute()
+        public unsafe void Execute(int index)
         {
-            var batchLODGroup = BatchLODGroups[BatchGroupIndex];
-            // var subBatchCount = batchLODGroup.GetWindowCount();
-            // subBatchCount = 1; //assume single window 
+            ref var visibleCountRef = ref UnsafeUtility.ArrayElementAsRef<int>(DrawCounters.GetUnsafePtr(), 0);
+            ref var drawRangesCountRef = ref UnsafeUtility.ArrayElementAsRef<int>(DrawCounters.GetUnsafePtr(), 1);
+            ref var drawCommandCountRef = ref UnsafeUtility.ArrayElementAsRef<int>(DrawCounters.GetUnsafePtr(), 2);
+            
+            ref var batchLODGroup = ref UnsafeUtility.ArrayElementAsRef<BatchLODGroup>(BatchLODGroups.GetUnsafePtr(), index);
 
             int lodCount = (int)batchLODGroup.LODCount;
             var validBatchCount = 0;
-            var totalDrawCount = 0;
+            var visibleCount = 0;
 
             for (uint lodIndex = 0; lodIndex < lodCount; lodIndex++)
             {
                 // for loop for subBatch/window
-                BatchLOD batchLOD = batchLODGroup[lodIndex];
+                ref var batchLOD = ref UnsafeUtility.ArrayElementAsRef<BatchLOD>(batchLODGroup.m_BatchLODs, (int)lodIndex);
                 int visibleCountLOD = batchLOD.VisibleCount;
                 
                 if (visibleCountLOD == 0) // there is no any visible instances for this LOD
                 {
                     continue;
                 }
-                else
-                {
-                    int subMeshCount = (int)batchLOD.SubMeshCount;
-                    validBatchCount = math.select(validBatchCount, validBatchCount + subMeshCount, visibleCountLOD > 0);
-                    totalDrawCount += validBatchCount;
-                }
-            }
-            
 
-            ref var drawRangeDataRef = ref UnsafeUtility.ArrayElementAsRef<BatchGroupDrawRange>(DrawRangesData.GetUnsafePtr(), BatchGroupIndex);
-            if (validBatchCount == 0)
-            {
-                for (var i = BatchGroupIndex + 1; i < BatchLODGroups.Length; i++)
-                {
-                    ref var nextDrawRangeDataRef = ref UnsafeUtility.ArrayElementAsRef<BatchGroupDrawRange>(DrawRangesData.GetUnsafePtr(), i);
-
-                    Interlocked.Decrement(ref nextDrawRangeDataRef.IndexOffset);
-                    Interlocked.Add(ref nextDrawRangeDataRef.BatchIndex, validBatchCount);
-                }
-
-                return;
+                int subMeshCount = (int)batchLOD.SubMeshCount;
+                validBatchCount = math.select(validBatchCount, validBatchCount + subMeshCount, visibleCountLOD > 0);
+                visibleCount += (visibleCountLOD * subMeshCount);
+                // break;
             }
 
-            ref var visibleCountRef = ref UnsafeUtility.ArrayElementAsRef<int>(DrawCounters.GetUnsafePtr(), 0);
-            ref var drawRangesCountRef = ref UnsafeUtility.ArrayElementAsRef<int>(DrawCounters.GetUnsafePtr(), 1);
-            ref var drawCommandCountRef = ref UnsafeUtility.ArrayElementAsRef<int>(DrawCounters.GetUnsafePtr(), 2);
-
+            Interlocked.Add(ref visibleCountRef, visibleCount);
             Interlocked.Add(ref drawRangesCountRef, validBatchCount);
-            Interlocked.Add(ref drawCommandCountRef, validBatchCount);
-            Interlocked.Add(ref visibleCountRef, totalDrawCount);
-
-            drawRangeDataRef.Count = validBatchCount;
-
-            for (var i = BatchGroupIndex + 1; i < BatchLODGroups.Length; i++) // prefix sum
+            int batchOffset = Interlocked.Add(ref drawCommandCountRef, validBatchCount);
+            batchOffset -= validBatchCount;
+            
+            //calculate index offset
+            int batchDrawOffset = batchOffset;
+            for (uint lodIndex = 0; lodIndex < lodCount; lodIndex++)
             {
-                ref var nextDrawRangeDataRef = ref UnsafeUtility.ArrayElementAsRef<BatchGroupDrawRange>(DrawRangesData.GetUnsafePtr(), i);
+                ref var batchLOD = ref UnsafeUtility.ArrayElementAsRef<BatchLOD>(batchLODGroup.m_BatchLODs, (int)lodIndex);
+                int visibleCountLOD = batchLOD.VisibleCount;
+                int subMeshCount = (int)batchLOD.SubMeshCount;
+                
+                if (visibleCountLOD == 0) // there is no any visible instances for this LOD
+                {
+                    continue;
+                }
 
-                Interlocked.Add(ref nextDrawRangeDataRef.Begin, validSubBatchCount);
-                Interlocked.Add(ref nextDrawRangeDataRef.VisibleIndexOffset, visibleCountPerBatchGroup);
-                Interlocked.Add(ref nextDrawRangeDataRef.BatchIndex, subBatchCount);
+                batchLOD.m_DrawBatchIndex = batchDrawOffset;
+                batchLOD.m_VisibleIndexStartIndex = batchOffset * 50 * (int)BRGConstants.MaxLODCount + (int)lodIndex * 50 ; //@TODO 
+                batchDrawOffset += subMeshCount;
+                // break;
             }
         }
     }

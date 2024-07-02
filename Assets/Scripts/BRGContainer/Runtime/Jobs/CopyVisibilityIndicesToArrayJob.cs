@@ -15,43 +15,37 @@
         [ReadOnly, NativeDisableContainerSafetyRestriction]
         public NativeArray<BatchLODGroup> BatchLODGroups;
 
-        [ReadOnly] public NativeArray<BatchGroupDrawRange> DrawRangesData;
+        // [ReadOnly] public NativeArray<BatchGroupDrawRange> DrawRangesData;
+        /*[ReadOnly]*/ public NativeArray<int> DrawInstanceIndexData;
 
         [NativeDisableUnsafePtrRestriction] public unsafe BatchCullingOutputDrawCommands* OutputDrawCommands;
 
         public unsafe void Execute(int index)
         {
-            var drawRangeData = DrawRangesData[index];
-            if (drawRangeData.Count == 0)
-                return; // there is no any visible batches
+            ref var batchLODGroup = ref UnsafeUtility.ArrayElementAsRef<BatchLODGroup>(BatchLODGroups.GetUnsafePtr(), index);
 
-            // var batchGroup = BatchGroups[index];
-            var batchLODGroup = BatchLODGroups[index];
-            for (uint lodIndex = 0u; lodIndex < batchLODGroup.LODCount; lodIndex++)
+            for (uint lodIndex = 0; lodIndex < batchLODGroup.LODCount; lodIndex++)
             {
-                var batchLOD = batchLODGroup[lodIndex];
-                // var windowCount = batchGroup.GetWindowCount();
-                var windowCount = 1;
-                var visibleOffset = drawRangeData.VisibleIndexOffset;
-                var visibleIndices = batchLOD.VisibleArrayPtr();
-                var visibleCount = batchLOD.VisibleCount;
+                ref var batchLOD = ref UnsafeUtility.ArrayElementAsRef<BatchLOD>(batchLODGroup.m_BatchLODs, (int)lodIndex);
+                int visibleCount = batchLOD.VisibleCount;
 
-                var batchStartIndex = drawRangeData.BatchIndex;
-                // for (var i = 0; i < windowCount; i++)
-                // {
-                //     var batchIndex = batchStartIndex + i;
-                //     var visibleCountPerBatch = VisibleCountPerBatch[batchIndex];
-                //
-                //
-                //     visibleOffset += visibleCountPerBatch;
-                // }
-                
-                if (visibleCount == 0) // there is no any visible instances for this batch
-                    continue;
-
-                for (int subMeshIndex = 0; subMeshIndex < batchLOD.SubMeshCount; subMeshIndex++)
+                if (batchLOD.VisibleCount == 0)
                 {
-                    UnsafeUtility.MemCpy((void*)((IntPtr)OutputDrawCommands->visibleInstances + (visibleOffset + subMeshIndex) * UnsafeUtility.SizeOf<int>()), visibleIndices, visibleCount * UnsafeUtility.SizeOf<int>());
+                    continue;
+                }
+
+                int drawRangeBeginIndex = batchLOD.m_DrawBatchIndex;
+                for (uint subMeshIndex = 0; subMeshIndex < batchLOD.SubMeshCount; subMeshIndex++)
+                {
+                    ref var batchGroup = ref UnsafeUtility.ArrayElementAsRef<BatchGroup>(batchLOD.m_BatchGroups, (int)subMeshIndex);
+                    int BatchLODGroupIndex = index;
+                    int visibleIndexOffset = BatchLODGroupIndex * 50 * (int)BRGConstants.MaxLODCount + (int)lodIndex * 50;
+                    int targetVisibleIndexOffset = batchLOD.m_VisibleIndexStartIndex ;
+                    
+                    UnsafeUtility.MemCpy((void*)((IntPtr)OutputDrawCommands->visibleInstances + (targetVisibleIndexOffset) * UnsafeUtility.SizeOf<int>()), (void*)((IntPtr)DrawInstanceIndexData.GetUnsafePtr() + visibleIndexOffset * UnsafeUtility.SizeOf<int>()), visibleCount * UnsafeUtility.SizeOf<int>());
+                    
+                    //only need copy once for each LOD
+                    break;
                 }
             }
         }

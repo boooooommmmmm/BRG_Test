@@ -15,47 +15,29 @@
         [ReadOnly, NativeDisableContainerSafetyRestriction]
         public NativeArray<BatchLODGroup> BatchLODGroups;
 
-        [ReadOnly] public NativeArray<BatchGroupDrawRange> DrawRangeData;
-
         [NativeDisableUnsafePtrRestriction] public unsafe BatchCullingOutputDrawCommands* OutputDrawCommands;
 
         public unsafe void Execute(int index)
         {
-            var drawRangeData = DrawRangeData[index];
-            if (drawRangeData.Count == 0)
-                return;
-
-            var batchLODGroup = BatchLODGroups[index];
-            var subBatchCount = batchLODGroup.GetWindowCount();
-            subBatchCount = 1;
-
-            var batchStartIndex = drawRangeData.BatchIndex;
-            var drawCommandIndex = drawRangeData.Begin;
-            var visibleOffset = drawRangeData.VisibleIndexOffset;
+            ref var batchLODGroup = ref UnsafeUtility.ArrayElementAsRef<BatchLODGroup>(BatchLODGroups.GetUnsafePtr(), index);
 
             for (uint lodIndex = 0; lodIndex < batchLODGroup.LODCount; lodIndex++)
             {
-                var batchLOD = batchLODGroup[lodIndex];
-                var visibleCountPreLOD = batchLOD.VisibleCount;
-                if (visibleCountPreLOD == 0) // there is no any visible instances for this batch
-                    continue;
-                var instanceCount = visibleCountPreLOD; // assume only has one subBatch
+                ref var batchLOD = ref UnsafeUtility.ArrayElementAsRef<BatchLOD>(batchLODGroup.m_BatchLODs, (int)lodIndex);
 
-                for (uint subMeshIndex = 0; subBatchCount < batchLOD.SubMeshCount; subMeshIndex++)
+                if (batchLOD.VisibleCount == 0)
                 {
-                    for (var i = 0; i < subBatchCount; i++)
-                    {
-                        // var batchIndex = batchStartIndex + i;
-                        
-                        // drawCommandIndex++;
-                        // visibleOffset += instanceCount;
-                    }
+                    continue;
+                }
 
-                    var batchGroup = batchLOD[subMeshIndex];
+                int drawRangeBeginIndex = batchLOD.m_DrawBatchIndex;
+                for (uint subMeshIndex = 0; subMeshIndex < batchLOD.SubMeshCount; subMeshIndex++)
+                {
+                    ref var batchGroup = ref UnsafeUtility.ArrayElementAsRef<BatchGroup>(batchLOD.m_BatchGroups, (int)subMeshIndex);
                     var batchDrawCommand = new BatchDrawCommand
                     {
-                        visibleOffset = (uint)0,
-                        visibleCount = (uint)visibleCountPreLOD,
+                        visibleOffset = (uint)batchLOD.m_VisibleIndexStartIndex,
+                        visibleCount = (uint)batchLOD.VisibleCount,
                         batchID = batchGroup[0],
                         materialID = batchGroup.BatchRendererData.MaterialID,
                         meshID = batchGroup.BatchRendererData.MeshID,
@@ -65,8 +47,7 @@
                         sortingPosition = 0
                     };
 
-                    OutputDrawCommands->drawCommands[drawCommandIndex] = batchDrawCommand;
-                    drawCommandIndex++;
+                    OutputDrawCommands->drawCommands[drawRangeBeginIndex + (int)subMeshIndex] = batchDrawCommand;
                 }
             }
         }

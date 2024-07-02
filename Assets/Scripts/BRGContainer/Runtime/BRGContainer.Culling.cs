@@ -34,14 +34,10 @@ namespace BRGContainer.Runtime
             cullingOutput.drawCommands[0] = new BatchCullingOutputDrawCommands();
             NativeArray<BatchLODGroup> batchLODGroups = m_LODGroups.GetValueArray(Allocator.TempJob);
             
-            var batchCount = 0;
-            for (var i = 0; i < batchLODGroups.Length; i++)
-                batchCount += batchLODGroups[i].GetWindowCount(); // sub batch count (for UBO)
-            
-            if (batchCount == 0)
+            if (batchLODGroups.Length == 0)
                 return batchLODGroups.Dispose(default);
-            
-            if (m_MainCamera)
+
+            if (m_MainCamera == null)
              return batchLODGroups.Dispose(default);
             // NativeArray<Plane> cullingPlanes = new NativeArray<Plane>(GeometryUtility.CalculateFrustumPlanes(m_Camera), Allocator.TempJob);
             Matrix4x4 matrix4X4 = m_MainCamera.cameraToWorldMatrix;
@@ -55,6 +51,8 @@ namespace BRGContainer.Runtime
                 cullingPlanes.Dispose();
                 cullingPlanes = cullingContext.cullingPlanes;
             }
+            
+            var drawInstanceIndexData = new NativeArray<int>(batchLODGroups.Length * 50 * (int)BRGConstants.MaxLODCount, Allocator.TempJob);
             
             var offset = 0;
             var batchJobHandles = stackalloc JobHandle[batchLODGroups.Length];
@@ -89,6 +87,7 @@ namespace BRGContainer.Runtime
                     Extents = commonExtents, //@TODO: temp code, need HISMAABB
                     StatePtr = statePtr,
                     // DataOffset = maxInstancePerWindow * batchIndex,
+                    DrawInstanceIndexData = drawInstanceIndexData,
                     DataOffset = 0,
                     BatchLODGroupIndex = batchLODGroupIndex,
                 };
@@ -96,64 +95,47 @@ namespace BRGContainer.Runtime
                 if (_forceJobFence) batchHandle.Complete();
                 
                 // offset += windowCount;
-                // batchJobHandles[batchGroupIndex] = batchHandle;
-
-                // for (uint lodIndex = 0; lodIndex < batchLODGroup.LODCount; lodIndex++)
-                // {
-                //     BatchLOD batchLOD = batchLODGroup[lodIndex];
-                //     for (uint subMeshIndex = 0; subMeshIndex < batchLOD.SubMeshCount; subMeshIndex++)
-                //     {
-                //         BatchGroup batchGroup = batchLOD[subMeshIndex];
-                //     }
-                // }
-
+                batchJobHandles[batchLODGroupIndex] = batchHandle;
             }
             
             var cullingHandle = JobHandleUnsafeUtility.CombineDependencies(batchJobHandles, batchLODGroups.Length);
             if (_forceJobFence) cullingHandle.Complete();
+
+            // return cullingHandle;
             
             var drawCounters = new NativeArray<int>(3, Allocator.TempJob);
-            var drawRangeData = new NativeArray<BatchGroupDrawRange>(batchLODGroups.Length, Allocator.TempJob);
-            
-            offset = 0;
-            for (var i = 0; i < batchLODGroups.Length; i++)
+            // var drawRangeData = new NativeArray<BatchGroupDrawRange>(batchLODGroups.Length, Allocator.TempJob);
+
+            var computeDrawCountersJob = new ComputeDrawCountersLODGroupJob()
             {
-                var batchLODGroup = batchLODGroups[i];
-                var windowCount = batchLODGroup.GetWindowCount();
-                windowCount = 1;
-            
-                var computeDrawCountersJob = new ComputeDrawCountersLODGroupJob()
-                {
-                    DrawCounters = drawCounters,
-                    DrawRangesData = drawRangeData,
-                    BatchLODGroups = batchLODGroups,
-                    BatchGroupIndex = i,
-                    BatchOffset = offset,
-                };
-            
-                offset += windowCount;
-                batchJobHandles[i] = computeDrawCountersJob.Schedule(cullingHandle);
-                if (_forceJobFence) batchJobHandles[i].Complete();
-            }
-            
-            var countersHandle = JobHandleUnsafeUtility.CombineDependencies(batchJobHandles, batchLODGroups.Length);
+                DrawCounters = drawCounters,
+                BatchLODGroups = batchLODGroups,
+            };
+
+            var countersHandle = computeDrawCountersJob.ScheduleByRef(batchLODGroups.Length, 64, cullingHandle);
             if (_forceJobFence) countersHandle.Complete();
-            
+
+            // return countersHandle;
+
+            // var countersHandle = JobHandleUnsafeUtility.CombineDependencies(batchJobHandles, batchLODGroups.Length);
+            // if (_forceJobFence) countersHandle.Complete();
             
             var drawCommands = (BatchCullingOutputDrawCommands*)cullingOutput.drawCommands.GetUnsafePtr();
             var allocateOutputDrawCommandsJob = new AllocateOutputDrawCommandsJob
             {
                 OutputDrawCommands = drawCommands,
-                Counters = drawCounters
+                Counters = drawCounters,
+                TotalBatchCount = m_TotalBatchCount,
             };
             var allocateOutputDrawCommandsHandle = allocateOutputDrawCommandsJob.Schedule(countersHandle);
             allocateOutputDrawCommandsHandle = drawCounters.Dispose(allocateOutputDrawCommandsHandle);
             if (_forceJobFence) allocateOutputDrawCommandsHandle.Complete();
             
+            // return countersHandle;
+            
             var createDrawRangesJob = new CreateDrawRangesJob
             {
                 BatchLODGroups = batchLODGroups,
-                DrawRangeData = drawRangeData,
                 OutputDrawCommands = drawCommands
             };
             var createDrawRangesHandle = createDrawRangesJob.ScheduleParallel(batchLODGroups.Length, 64, allocateOutputDrawCommandsHandle);
@@ -162,7 +144,6 @@ namespace BRGContainer.Runtime
             var createDrawCommandsJob = new CreateDrawCommandsJob
             {
                 BatchLODGroups = batchLODGroups,
-                DrawRangeData = drawRangeData,
                 OutputDrawCommands = drawCommands
             };
             var createDrawCommandsHandle = createDrawCommandsJob.ScheduleParallel(batchLODGroups.Length, 64, createDrawRangesHandle);
@@ -171,14 +152,14 @@ namespace BRGContainer.Runtime
             var copyVisibilityIndicesToArrayJob = new CopyVisibilityIndicesToArrayJob
             {
                 BatchLODGroups = batchLODGroups,
-                DrawRangesData = drawRangeData,
+                DrawInstanceIndexData = drawInstanceIndexData,
                 OutputDrawCommands = drawCommands
             };
             
             var resultHandle = copyVisibilityIndicesToArrayJob.ScheduleParallel(batchLODGroups.Length, 32, createDrawCommandsHandle);
             if (_forceJobFence) resultHandle.Complete();
             
-            resultHandle = JobHandle.CombineDependencies(drawRangeData.Dispose(resultHandle), batchLODGroups.Dispose(resultHandle));
+            resultHandle = JobHandle.CombineDependencies(/*drawRangeData.Dispose(resultHandle),*/ batchLODGroups.Dispose(resultHandle), drawInstanceIndexData.Dispose(resultHandle));
             resultHandle = cullingPlanes.Dispose(resultHandle);
             if (_forceJobFence) resultHandle.Complete();
             

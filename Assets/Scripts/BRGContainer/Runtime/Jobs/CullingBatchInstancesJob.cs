@@ -25,6 +25,9 @@ namespace BRGContainer.Runtime
         [ReadOnly] public float3 Extents;
         
         [WriteOnly, NativeDisableUnsafePtrRestriction] public unsafe uint* StatePtr;
+        
+        [WriteOnly, NativeDisableContainerSafetyRestriction]
+        public NativeArray<int> DrawInstanceIndexData;
 
         public int DataOffset;
 
@@ -63,7 +66,10 @@ namespace BRGContainer.Runtime
             uint lodIndex = BatchLODGroup.GetCurrentLOD(index);
             BatchLOD* batchLOD = BatchLODGroup.GetByRef((int)lodIndex);
             int count = Interlocked.Increment(ref UnsafeUtility.AsRef<int>((*batchLOD).visibleCount));
-            (*batchLOD).VisibleArrayPtr()[count - 1] = index;
+            // (*batchLOD).VisibleArrayPtr()[count - 1] = index;
+            
+            int visibleIndexOffset = BatchLODGroupIndex * 50 * (int)BRGConstants.MaxLODCount + (int)lodIndex * 50;
+            DrawInstanceIndexData[visibleIndexOffset + count - 1] = index;
         }
     }
 }

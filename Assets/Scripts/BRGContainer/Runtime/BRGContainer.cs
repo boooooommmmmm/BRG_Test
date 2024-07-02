@@ -34,6 +34,7 @@ namespace BRGContainer.Runtime
 
         private Camera m_MainCamera;
         private float3 m_WorldOffset = float3.zero;
+        internal int m_TotalBatchCount;
 
 
         //static
@@ -50,6 +51,7 @@ namespace BRGContainer.Runtime
             m_LODGroups = new NativeParallelHashMap<BatchLODGroupID, BatchLODGroup>(1, Allocator.Persistent);
 
             m_Containers.TryAdd(m_ContainerId, this);
+            m_TotalBatchCount = 0;
         }
 
         public BRGContainer(Bounds bounds) : this()
@@ -94,7 +96,7 @@ namespace BRGContainer.Runtime
             GetNewBatchLODGroupID(out BatchLODGroupID batchLODGroupID);
             BatchLODGroup batchLODGroup = CreateBatchLODGroup(in batchDescription, in rendererDescription, in batchLODGroupID, ref worldObjectData, Allocator.Persistent);
             
-            batchLODGroup.Register(m_BatchRendererGroup, graphicsBuffer.bufferHandle);
+            m_TotalBatchCount += batchLODGroup.Register(m_BatchRendererGroup, graphicsBuffer.bufferHandle);
             
             m_GraphicsBuffers.Add(batchLODGroupID, graphicsBuffer);
             m_LODGroups.Add(batchLODGroupID, batchLODGroup);
@@ -203,7 +205,8 @@ namespace BRGContainer.Runtime
             if (container.m_LODGroups.TryGetValue(batchLODGroupID, out var batchGroup))
             {
                 container.m_LODGroups.Remove(batchLODGroupID);
-                batchGroup.Unregister(container.m_BatchRendererGroup);
+                int removeBatchCount = batchGroup.Unregister(container.m_BatchRendererGroup);
+                container.m_TotalBatchCount -= removeBatchCount;
                 batchGroup.Dispose();
             }
 

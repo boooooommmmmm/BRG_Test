@@ -13,26 +13,30 @@
     {
         [NativeDisableUnsafePtrRestriction]
         public unsafe BatchCullingOutputDrawCommands* OutputDrawCommands;
-        [ReadOnly]
-        public NativeArray<int> Counters;
+        [ReadOnly] public NativeArray<int> Counters;
+
+        [ReadOnly] public int TotalBatchCount;
         
         public unsafe void Execute()
         {
             var visibleCount = Counters[0];
             var drawRangesCount = Counters[1];
             var drawCommandCount = Counters[2];
-
-            OutputDrawCommands->visibleInstanceCount = visibleCount;
-            OutputDrawCommands->visibleInstances = (int*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<int>() * visibleCount,
-                UnsafeUtility.AlignOf<int>(), Allocator.TempJob);
             
+            var maxVisibleCount = TotalBatchCount * 50 * (int)BRGConstants.MaxLODCount;
+            OutputDrawCommands->visibleInstanceCount = visibleCount;
+            OutputDrawCommands->visibleInstances = (int*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<int>() * maxVisibleCount, UnsafeUtility.AlignOf<int>(), Allocator.TempJob);
+
+            // drawRangesCount = TotalBatchCount * (int)BRGConstants.MaxLODCount;
             OutputDrawCommands->drawRangeCount = drawRangesCount;
             OutputDrawCommands->drawRanges = (BatchDrawRange*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<BatchDrawRange>() * drawRangesCount,
                 UnsafeUtility.AlignOf<BatchDrawRange>(), Allocator.TempJob);
-
+            //
+            // // drawCommandCount = TotalBatchCount * (int)BRGConstants.MaxLODCount;
             OutputDrawCommands->drawCommandCount = drawCommandCount;
             OutputDrawCommands->drawCommands = (BatchDrawCommand*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<BatchDrawCommand>() * drawCommandCount,
                 UnsafeUtility.AlignOf<BatchDrawCommand>(), Allocator.TempJob);
+            
         }
     }
 }

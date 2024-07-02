@@ -21,9 +21,9 @@
     public struct BatchLODGroup : INativeDisposable
     {
         private static int s_LODOffset = 0;
-        private static int s_ActiveOffset = 4;
+        private static int s_ActiveOffset = 3; // 1 << 3 = 8
         private static uint s_bLODMask = 0x7; // 0000 0000 0000 0111
-        private static uint s_bActiveMask = 0x8; // 1 << 4
+        private static uint s_bActiveMask = 0x8; // 1 << 3
         private static uint s_LODCount = 4u;
 
         private readonly int m_BufferLength;
@@ -37,7 +37,7 @@
         [NativeDisableUnsafePtrRestriction] private unsafe float4* m_DataBuffer; // o2w, w2o, meta data arrays
         [NativeDisableUnsafePtrRestriction] private unsafe uint* m_State; // 0-3 bit: lod; 4 bit: active state
         [NativeDisableUnsafePtrRestriction] private unsafe HISMAABB* m_AABBs;
-        [NativeDisableUnsafePtrRestriction] private unsafe BatchLOD* m_BatchLODs;
+        [NativeDisableUnsafePtrRestriction] internal unsafe BatchLOD* m_BatchLODs;
         [NativeDisableUnsafePtrRestriction] internal unsafe int* m_ActiveCount; //
 
         public readonly unsafe int ActiveCount
@@ -73,7 +73,8 @@
             m_Allocator = allocator;
             m_BatchDescription = batchDescription;
             RendererDescription = rendererDescription;
-            m_LODCount = (uint)worldObjectData.LODCount;
+            // m_LODCount = (uint)worldObjectData.LODCount;
+            m_LODCount = BRGConstants.MaxLODCount; // use default lod count 
             LODGroupID = batchLODGroupID;
 
             m_BufferLength = m_BatchDescription.TotalBufferSize / 16;
@@ -87,9 +88,11 @@
 
             int maxCount = m_BatchDescription.MaxInstanceCount;
             m_State = (uint*)UnsafeUtility.Malloc(BRGConstants.SizeOfUint * maxCount, BRGConstants.AlignOfUint, m_Allocator);
+            UnsafeUtility.MemClear(m_State, BRGConstants.SizeOfUint * maxCount);
             m_AABBs = (HISMAABB*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<HISMAABB>() * maxCount, UnsafeUtility.AlignOf<HISMAABB>(), m_Allocator);
 
-            uint lodCount = (uint)Mathf.Min((uint)worldObjectData.LODCount, s_LODCount); 
+            // uint lodCount = (uint)Mathf.Min((uint)worldObjectData.LODCount, s_LODCount);
+            uint lodCount = (uint)Mathf.Min((uint)m_LODCount, s_LODCount); 
             m_BatchLODs = (BatchLOD*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<BatchLOD>() * lodCount, UnsafeUtility.AlignOf<BatchLOD>(), m_Allocator);
             for (uint lodIndex = 0u; lodIndex < lodCount; lodIndex++)
             {
@@ -157,23 +160,29 @@
         }
 
         [BurstDiscard]
-        public unsafe void Register([NotNull] BatchRendererGroup batchRendererGroup, in GraphicsBufferHandle bufferHandle)
+        public unsafe int Register([NotNull] BatchRendererGroup batchRendererGroup, in GraphicsBufferHandle bufferHandle)
         {
+            int totalRegisterBatchCount = 0;
             var metadataValues = m_BatchDescription.AsNativeArray();
             for (uint lodIndex = 0; lodIndex < m_LODCount; lodIndex++)
             {
-                m_BatchLODs[lodIndex].Register(batchRendererGroup, in bufferHandle, metadataValues);
+                totalRegisterBatchCount += m_BatchLODs[lodIndex].Register(batchRendererGroup, in bufferHandle, metadataValues);
             }
+
+            return totalRegisterBatchCount;
         }
 
 
         [BurstDiscard]
-        public unsafe void Unregister(BatchRendererGroup batchRendererGroup)
+        public unsafe int Unregister(BatchRendererGroup batchRendererGroup)
         {
+            int removeBatchCount = 0;
             for (uint lodIndex = 0; lodIndex < m_LODCount; lodIndex++)
             {
-                m_BatchLODs[lodIndex].Unregister(batchRendererGroup);
+                removeBatchCount += m_BatchLODs[lodIndex].Unregister(batchRendererGroup);
             }
+
+            return removeBatchCount;
         }
 
         public unsafe void SetInstanceCount(int instanceCount)
@@ -347,26 +356,88 @@
             bool bSavedActive = (savedActive == (1u << s_ActiveOffset));
             // bool isActiveChanged = false;
 
-            if (isActive)
+            if (bSavedActive && isActive)
             {
-                uint stateWithoutLOD = (savedState & ~s_bLODMask);
-                savedState = (stateWithoutLOD | (uint)(lod << s_LODOffset));
-                savedState |= (1u << s_ActiveOffset);
+                if (savedLOD == (uint)lod)
+                {
+                    // nothing
+                }
+                else
+                {
+                    //change active lod
+                    uint stateWithoutLOD = (savedState & ~s_bLODMask);
+                    savedState = (stateWithoutLOD | (uint)(lod << s_LODOffset));
+                }
             }
-            else if (savedLOD == (uint)lod) // inactive
+            else if (!bSavedActive && isActive)
             {
-                savedState &= ~(1u << s_ActiveOffset);
+                // Interlocked.Increment(ref *m_ActiveCount);
+                (*m_ActiveCount) += 1;
+                if (savedLOD == (uint)lod)
+                {
+                    // set active
+                    savedState |= (1u << s_ActiveOffset);
+                }
+                else
+                {
+                    // change lod and set active
+                    uint stateWithoutLOD = (savedState & ~s_bLODMask);
+                    savedState = (stateWithoutLOD | (uint)(lod << s_LODOffset));
+                    savedState |= (1u << s_ActiveOffset);
+                }
             }
-            else if (bSavedActive) // set inactive with different lod level
+            else if (bSavedActive && !isActive)
             {
-                // nothing
+                (*m_ActiveCount) -= 1;
+                if (savedLOD == (uint)lod)
+                {
+                    // set inactive
+                    savedState &= ~(1u << s_ActiveOffset);
+                }
+                else
+                {
+                    // change lod and set inactive
+                    uint stateWithoutLOD = (savedState & ~s_bLODMask);
+                    savedState = (stateWithoutLOD | (uint)(lod << s_LODOffset));
+                    savedState &= ~(1u << s_ActiveOffset);
+                }
             }
-            else // set inactive with different lod level
+            else //(!bSavedActive && !isActive)
             {
-                // nothing
+                if (savedLOD == (uint)lod)
+                {
+                    // nothing
+                }
+                else
+                {
+                    //change lod
+                    uint stateWithoutLOD = (savedState & ~s_bLODMask);
+                    savedState = (stateWithoutLOD | (uint)(lod << s_LODOffset));
+                }
             }
 
             m_State[index] = savedState;
+
+            // if (isActive)
+            // {
+            //     uint stateWithoutLOD = (savedState & ~s_bLODMask);
+            //     savedState = (stateWithoutLOD | (uint)(lod << s_LODOffset));
+            //     savedState |= (1u << s_ActiveOffset);
+            // }
+            // else if (savedLOD == (uint)lod) // inactive
+            // {
+            //     savedState &= ~(1u << s_ActiveOffset);
+            // }
+            // else if (bSavedActive) // set inactive with different lod level
+            // {
+            //     // nothing
+            // }
+            // else // set inactive with different lod level
+            // {
+            //     // nothing
+            // }
+            //
+            // m_State[index] = savedState;
         }
 
         public unsafe bool IsActive(int index)
