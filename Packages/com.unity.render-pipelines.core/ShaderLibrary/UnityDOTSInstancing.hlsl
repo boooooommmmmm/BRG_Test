@@ -157,7 +157,7 @@ UNITY_DOTS_INSTANCED_PROP_IS_OVERRIDE_ENABLED(var) ? LoadDOTSInstancedData_##typ
 : ((type)0) \
 )
 
-//Sven test
+
 #define UNITY_ACCESS_DOTS_INSTANCED_PROP_FROM_MACRO(type, metadata_underscore_var) LoadDOTSInstancedData_##type(UNITY_DOTS_INSTANCED_METADATA_NAME_FROM_MACRO(type, metadata_underscore_var))
 
 
