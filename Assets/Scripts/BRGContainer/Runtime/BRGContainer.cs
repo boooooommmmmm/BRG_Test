@@ -125,23 +125,23 @@ namespace BRGContainer.Runtime
         }
 
         // return if batchHandle changed
-        // public bool ExtendInstanceCount(ref BatchHandle batchHandle, int addCount)
-        // {
-        //     BatchID batchID = batchHandle.m_BatchId;
-        //     int currentCount = m_Groups[batchID].InstanceCount;
-        //     int targetCount = currentCount + addCount;
-        //     int maxCount = m_Groups[batchID].m_BatchDescription.MaxInstanceCount;
-        //     if (maxCount >= targetCount)
-        //     {
-        //         // need reset instance count in dataBuffer via logic in BatchHanle.
-        //         return false;
-        //     }
-        //     else
-        //     {
-        //         // batchHandle = ResizeBatchBuffers(ref batchID, targetCount);
-        //         return true;
-        //     }
-        // }
+        public bool ExtendInstanceCount(ref LODGroupBatchHandle lodGroupBatchHandle, int addCount)
+        {
+            var lodGroupID = lodGroupBatchHandle.m_BatchLODGroupID;
+            int currentCount = m_LODGroups[lodGroupID].InstanceCount;
+            int targetCount = currentCount + addCount;
+            int maxCount = m_LODGroups[lodGroupID].m_BatchDescription.MaxInstanceCount;
+            if (maxCount >= targetCount)
+            {
+                // need reset instance count in dataBuffer via logic in BatchHanle.
+                return false;
+            }
+            else
+            {
+                // batchHandle = ResizeBatchBuffers(ref batchID, targetCount);
+                return true;
+            }
+        }
 
         // private BatchHandle ResizeBatchBuffers(ref BatchID batchID, int targetCount)
         // {
@@ -273,15 +273,15 @@ namespace BRGContainer.Runtime
             if (info == EGetNextActiveIndexInfo.None)
             {
             }
-            else
-            {
-                throw new Exception("Not support now");
-            }
-            // else if (info == EGetNextActiveIndexInfo.NeedExtentInstanceCount)
+            // else
             // {
-            //     bool batchHandleChanged = container.ExtendInstanceCount(ref batchHandle, 1);
-            //     batchHandle.IncreaseInstanceCount();
+            //     throw new Exception("Not support now");
             // }
+            else if (info == EGetNextActiveIndexInfo.NeedExtentInstanceCount)
+            {
+                bool batchHandleChanged = container.ExtendInstanceCount(ref lodGroupBatchHandle, 1);
+                lodGroupBatchHandle.IncreaseInstanceCount();
+            }
             // else if (info == EGetNextActiveIndexInfo.NeedResize)
             // {
             //     bool batchHandleChanged = container.ExtendInstanceCount(ref batchHandle, 1);

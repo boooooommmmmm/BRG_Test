@@ -339,8 +339,13 @@
                 throw new ArgumentOutOfRangeException($"SetInactive index {index} out of range from 0 to {InstanceCount} (include).");
 #endif
             uint savedState = m_State[index];
+            uint savedActive = savedState & s_bActiveMask;
+            bool bSavedActive = (savedActive == (1u << s_ActiveOffset));
             savedState &= ~(1u << s_ActiveOffset);
             m_State[index] = savedState;
+            
+            if (bSavedActive)
+                (*m_ActiveCount) -= 1;
         }
 
         public unsafe void SetActive(int index, uint lod, bool isActive)

@@ -47,6 +47,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
         if (_isAdded == false)
         {
             AddBatch();
+            // AddBatch();
             _isAdded = true;
         }
 

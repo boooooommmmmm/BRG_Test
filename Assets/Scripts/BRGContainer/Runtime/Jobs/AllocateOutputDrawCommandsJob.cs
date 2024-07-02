@@ -36,7 +36,6 @@
             OutputDrawCommands->drawCommandCount = drawCommandCount;
             OutputDrawCommands->drawCommands = (BatchDrawCommand*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<BatchDrawCommand>() * drawCommandCount,
                 UnsafeUtility.AlignOf<BatchDrawCommand>(), Allocator.TempJob);
-            
         }
     }
 }
