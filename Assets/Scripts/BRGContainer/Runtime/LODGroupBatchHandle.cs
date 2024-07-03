@@ -165,7 +165,7 @@ namespace BRGContainer.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Destroy(ContainerID containerId, BatchLODGroupID batchLODGroupID)
         {
-            BRGContainer.DestroyBatch(containerId, batchLODGroupID);
+            BRGContainer.DestroyBatchLODGroup(containerId, batchLODGroupID);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

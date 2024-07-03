@@ -11,13 +11,13 @@
             // return GetWindowCount(batchGroup, batchGroup.InstanceCount);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetWindowCount(this BatchGroup batchGroup, int instanceCount)
-        {
-            var description = batchGroup.m_BatchDescription;
-            return (instanceCount + description.MaxInstancePerWindow - 1) /
-                   description.MaxInstancePerWindow;
-        }
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // public static int GetWindowCount(this BatchGroup batchGroup, int instanceCount)
+        // {
+        //     var description = batchGroup.m_BatchDescription;
+        //     return (instanceCount + description.MaxInstancePerWindow - 1) /
+        //            description.MaxInstancePerWindow;
+        // }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetInstanceCountPerWindow(this BatchLODGroup batchLODGroup, int subBatchIndex)

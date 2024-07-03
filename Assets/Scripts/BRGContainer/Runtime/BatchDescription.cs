@@ -59,112 +59,112 @@ namespace BRGContainer.Runtime
         public readonly uint WindowSize;
         public readonly int TotalBufferSize;
 
-//         public unsafe BatchDescription(ref BatchDescription batchDescription, Allocator allocator, int newSize = -1)
-//         {
-//             if (IsUBO)
-//                 throw new Exception("Not support!");
-//             if (newSize != -1 && (newSize < batchDescription.MaxInstanceCount))
-//                 throw new Exception("Not support!");
-//             
-//             int lastMaxInstanceCount = batchDescription.MaxInstanceCount;
-//             MaxInstanceCount = newSize;
-//             m_Allocator = allocator;
-//             MetadataLength = batchDescription.MetadataLength;
-//             
-// #if ENABLE_UNITY_COLLECTIONS_CHECKS
-//             m_Safety = m_Allocator == Allocator.Temp ? AtomicSafetyHandle.GetTempMemoryHandle() : AtomicSafetyHandle.Create();
-//             InitStaticSafetyId(ref m_Safety);
-//             AtomicSafetyHandle.SetStaticSafetyId(ref m_Safety, m_StaticSafetyId);
-// #endif
-//             
-//             m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(), m_Allocator);
-//             m_MetadataInfoMap = (UnsafeParallelHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(UnsafeUtility.SizeOf<UnsafeParallelHashMap<int, MetadataInfo>>(), UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(), m_Allocator);
-//             
-//             *m_MetadataValues = new UnsafeList<MetadataValue>(MetadataLength, m_Allocator);
-//             // (*m_MetadataValues).CopyFrom(*batchDescription.m_MetadataValues);
-//             *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(MetadataLength, m_Allocator);
-//
-//             // resize metadata configure
-//             for (int i = 0; i < MetadataLength; i++)
-//             {
-//                 MetadataValue oldValue = batchDescription[i];
-//                 MetadataInfo oldInfo = batchDescription.GetMetadataInfo(oldValue.NameID);
-//                 int offset = oldInfo.Offset * (MaxInstanceCount / lastMaxInstanceCount);
-//                 MetadataInfo info = new MetadataInfo(oldInfo.Size, offset, oldInfo.PropertyId, oldInfo.IsPerInstance);
-//                 MetadataValue value = new MetadataValue()
-//                 {
-//                     NameID = oldInfo.PropertyId, 
-//                     Value = (uint)offset | (oldInfo.IsPerInstance ? PerInstanceBit : 0u)
-//                 };
-//                 m_MetadataValues->Add(value);
-//                 m_MetadataInfoMap->Add(info.PropertyId, info);
-//             }
-//   
-//             SizePerInstance = batchDescription.SizePerInstance;
-//             if (newSize == -1)
-//             {
-//                 AlignedWindowSize = batchDescription.AlignedWindowSize;
-//                 MaxInstancePerWindow = batchDescription.MaxInstancePerWindow;
-//                 WindowCount = batchDescription.WindowCount;
-//                 WindowSize = batchDescription.WindowSize;
-//                 TotalBufferSize = batchDescription.TotalBufferSize;
-//             }
-//             else
-//             {
-//                 AlignedWindowSize = (MaxInstanceCount * SizePerInstance + 15) & -16;;
-//                 MaxInstancePerWindow = MaxInstanceCount;
-//                 WindowCount = 1;
-//                 WindowSize = 0u;
-//                 TotalBufferSize = WindowCount * AlignedWindowSize;
-//             }
-//         }
+        public unsafe BatchDescription(in BatchDescription batchDescription, Allocator allocator, int newSize = -1)
+        {
+            if (IsUBO)
+                throw new Exception("Not support!");
+            if (newSize != -1 && (newSize < batchDescription.MaxInstanceCount))
+                throw new Exception("Not support!");
+            
+            int lastMaxInstanceCount = batchDescription.MaxInstanceCount;
+            MaxInstanceCount = newSize;
+            m_Allocator = allocator;
+            MetadataLength = batchDescription.MetadataLength;
+            
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            m_Safety = m_Allocator == Allocator.Temp ? AtomicSafetyHandle.GetTempMemoryHandle() : AtomicSafetyHandle.Create();
+            InitStaticSafetyId(ref m_Safety);
+            AtomicSafetyHandle.SetStaticSafetyId(ref m_Safety, m_StaticSafetyId);
+#endif
+            
+            m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(), m_Allocator);
+            m_MetadataInfoMap = (UnsafeParallelHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(UnsafeUtility.SizeOf<UnsafeParallelHashMap<int, MetadataInfo>>(), UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(), m_Allocator);
+            
+            *m_MetadataValues = new UnsafeList<MetadataValue>(MetadataLength, m_Allocator);
+            // (*m_MetadataValues).CopyFrom(*batchDescription.m_MetadataValues);
+            *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(MetadataLength, m_Allocator);
 
-//         public unsafe BatchDescription(int maxInstanceCount, Allocator allocator)
-//         {
-//             MaxInstanceCount = maxInstanceCount;
-//             m_Allocator = allocator;
-//             MetadataLength = 2;
-//             
-//             #if ENABLE_UNITY_COLLECTIONS_CHECKS
-//             m_Safety = allocator == Allocator.Temp ? AtomicSafetyHandle.GetTempMemoryHandle() : AtomicSafetyHandle.Create();
-//             InitStaticSafetyId(ref m_Safety);
-//             AtomicSafetyHandle.SetStaticSafetyId(ref m_Safety, m_StaticSafetyId);
-// #endif
-//
-//             m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(
-//                 UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(),
-//                 allocator);
-//             m_MetadataInfoMap = (UnsafeParallelHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
-//                 UnsafeUtility.SizeOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
-//                 UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
-//                 allocator);
-//             
-//             *m_MetadataValues = new UnsafeList<MetadataValue>(MetadataLength, allocator);
-//             *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(MetadataLength, allocator);
-//
-//             SizePerInstance = UnsafeUtility.SizeOf<PackedMatrix>() * 2;
-//
-//             if (IsUBO)
-//             {
-//                 AlignedWindowSize = BatchRendererGroup.GetConstantBufferMaxWindowSize();
-//                 MaxInstancePerWindow = AlignedWindowSize / SizePerInstance;
-//                 WindowCount = (MaxInstanceCount + MaxInstancePerWindow - 1) / MaxInstancePerWindow;
-//                 WindowSize = (uint) AlignedWindowSize;
-//                 TotalBufferSize = WindowCount * AlignedWindowSize;
-//             }
-//             else
-//             {
-//                 AlignedWindowSize = (MaxInstanceCount * SizePerInstance + 15) & -16;
-//                 MaxInstancePerWindow = MaxInstanceCount;
-//                 WindowCount = 1;
-//                 WindowSize = 0u;
-//                 TotalBufferSize = WindowCount * AlignedWindowSize;
-//             }
-//
-//             var metadataOffset = 0;
-//             RegisterMetadata(UnsafeUtility.SizeOf<PackedMatrix>(), m_ObjectToWorldPropertyName, ref metadataOffset);
-//             RegisterMetadata(UnsafeUtility.SizeOf<PackedMatrix>(), m_WorldToObjectPropertyName, ref metadataOffset);
-//         }
+            // resize metadata configure
+            for (int i = 0; i < MetadataLength; i++)
+            {
+                MetadataValue oldValue = batchDescription[i];
+                MetadataInfo oldInfo = batchDescription.GetMetadataInfo(oldValue.NameID);
+                int offset = oldInfo.Offset * (MaxInstanceCount / lastMaxInstanceCount);
+                MetadataInfo info = new MetadataInfo(oldInfo.Size, offset, oldInfo.PropertyId, oldInfo.IsPerInstance);
+                MetadataValue value = new MetadataValue()
+                {
+                    NameID = oldInfo.PropertyId, 
+                    Value = (uint)offset | (oldInfo.IsPerInstance ? PerInstanceBit : 0u)
+                };
+                m_MetadataValues->Add(value);
+                m_MetadataInfoMap->Add(info.PropertyId, info);
+            }
+  
+            SizePerInstance = batchDescription.SizePerInstance;
+            if (newSize == -1)
+            {
+                AlignedWindowSize = batchDescription.AlignedWindowSize;
+                MaxInstancePerWindow = batchDescription.MaxInstancePerWindow;
+                WindowCount = batchDescription.WindowCount;
+                WindowSize = batchDescription.WindowSize;
+                TotalBufferSize = batchDescription.TotalBufferSize;
+            }
+            else
+            {
+                AlignedWindowSize = (MaxInstanceCount * SizePerInstance + 15) & -16;;
+                MaxInstancePerWindow = MaxInstanceCount;
+                WindowCount = 1;
+                WindowSize = 0u;
+                TotalBufferSize = WindowCount * AlignedWindowSize;
+            }
+        }
+
+        public unsafe BatchDescription(int maxInstanceCount, Allocator allocator)
+        {
+            MaxInstanceCount = maxInstanceCount;
+            m_Allocator = allocator;
+            MetadataLength = 2;
+            
+            #if ENABLE_UNITY_COLLECTIONS_CHECKS
+            m_Safety = allocator == Allocator.Temp ? AtomicSafetyHandle.GetTempMemoryHandle() : AtomicSafetyHandle.Create();
+            InitStaticSafetyId(ref m_Safety);
+            AtomicSafetyHandle.SetStaticSafetyId(ref m_Safety, m_StaticSafetyId);
+#endif
+
+            m_MetadataValues = (UnsafeList<MetadataValue>*) UnsafeUtility.Malloc(
+                UnsafeUtility.SizeOf<UnsafeList<MetadataValue>>(), UnsafeUtility.AlignOf<UnsafeList<MetadataValue>>(),
+                allocator);
+            m_MetadataInfoMap = (UnsafeParallelHashMap<int, MetadataInfo>*) UnsafeUtility.Malloc(
+                UnsafeUtility.SizeOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
+                UnsafeUtility.AlignOf<UnsafeParallelHashMap<int, MetadataInfo>>(),
+                allocator);
+            
+            *m_MetadataValues = new UnsafeList<MetadataValue>(MetadataLength, allocator);
+            *m_MetadataInfoMap = new UnsafeParallelHashMap<int, MetadataInfo>(MetadataLength, allocator);
+
+            SizePerInstance = UnsafeUtility.SizeOf<PackedMatrix>() * 2;
+
+            if (IsUBO)
+            {
+                AlignedWindowSize = BatchRendererGroup.GetConstantBufferMaxWindowSize();
+                MaxInstancePerWindow = AlignedWindowSize / SizePerInstance;
+                WindowCount = (MaxInstanceCount + MaxInstancePerWindow - 1) / MaxInstancePerWindow;
+                WindowSize = (uint) AlignedWindowSize;
+                TotalBufferSize = WindowCount * AlignedWindowSize;
+            }
+            else
+            {
+                AlignedWindowSize = (MaxInstanceCount * SizePerInstance + 15) & -16;
+                MaxInstancePerWindow = MaxInstanceCount;
+                WindowCount = 1;
+                WindowSize = 0u;
+                TotalBufferSize = WindowCount * AlignedWindowSize;
+            }
+
+            var metadataOffset = 0;
+            RegisterMetadata(UnsafeUtility.SizeOf<PackedMatrix>(), m_ObjectToWorldPropertyName, ref metadataOffset);
+            RegisterMetadata(UnsafeUtility.SizeOf<PackedMatrix>(), m_WorldToObjectPropertyName, ref metadataOffset);
+        }
         
         // [ExcludeFromBurstCompatTesting("BatchDescription creating is unburstable")]
         public unsafe BatchDescription(int maxInstanceCount, NativeArray<MaterialProperty> materialProperties, Allocator allocator)
@@ -351,10 +351,10 @@ namespace BRGContainer.Runtime
         //     return new BatchDescription(ref batchDescription, allocator);
         // }
         
-        // public static BatchDescription CopyWithResize(ref BatchDescription batchDescription, int newSize)
-        // {
-        //     return new BatchDescription(ref batchDescription, batchDescription.m_Allocator, newSize);
-        // }
+        public static BatchDescription CopyWithResize(in BatchDescription batchDescription, int newSize)
+        {
+            return new BatchDescription(in batchDescription, batchDescription.m_Allocator, newSize);
+        }
         
         private unsafe void RegisterMetadata(int sizeInBytes, int propertyId, ref int metadataOffset, bool isPerInstance = true)
         {

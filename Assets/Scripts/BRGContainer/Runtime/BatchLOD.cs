@@ -33,13 +33,13 @@ namespace BRGContainer.Runtime
             get => *visibleCount;
         }
 
-        public unsafe BatchLOD(in BatchDescription description, in RendererDescription rendererDescription, in BatchWorldObjectLODData worldObjectLODData, uint lodIndex, int maxInstanceCount, int* instanceCount,  Allocator allocator)
+        public unsafe BatchLOD(in BatchDescription description, in RendererDescription rendererDescription, in BatchWorldObjectLODData worldObjectLODData, uint lodIndex, int* instanceCount,  Allocator allocator)
         {
             m_Allocator = allocator;
             
             m_LODIndex = lodIndex;
             m_SubmeshCount = worldObjectLODData.SubmeshCount;
-            m_MaxInstanceCount = maxInstanceCount;
+            m_MaxInstanceCount = description.MaxInstanceCount;
             m_InstanceCount = instanceCount;
             m_VisibleIndexStartIndex = 0;
             m_DrawBatchIndex = 0;
@@ -54,6 +54,30 @@ namespace BRGContainer.Runtime
             {
                 BatchWorldObjectSubMeshData woldObjectSubMeshData = worldObjectLODData[submeshIndex];
                 m_BatchGroups[submeshIndex] = new BatchGroup(in description, in rendererDescription, in woldObjectSubMeshData.m_RendererData,  m_Allocator);
+            }
+        }
+        
+        // copy ctor for resizing BatchLOD
+        public unsafe BatchLOD(in BatchLOD oldBatchLOD, in BatchDescription newBatchDescription, int* instanceCount)
+        {
+            m_Allocator = oldBatchLOD.m_Allocator;
+            
+            m_LODIndex = oldBatchLOD.m_LODIndex;
+            m_SubmeshCount = oldBatchLOD.m_SubmeshCount;
+            m_MaxInstanceCount = newBatchDescription.MaxInstanceCount;
+            m_InstanceCount = instanceCount;
+            m_VisibleIndexStartIndex = oldBatchLOD.m_VisibleIndexStartIndex;
+            m_DrawBatchIndex = oldBatchLOD.m_DrawBatchIndex;
+            
+            m_BatchGroups = (BatchGroup*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchGroup * m_SubmeshCount, BRGConstants.AlignOfBatchGroup, m_Allocator);
+            // visibleArray = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt * m_MaxInstanceCount, BRGConstants.AlignOfInt, m_Allocator);
+            
+            visibleCount = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt, BRGConstants.AlignOfInt, m_Allocator);
+            UnsafeUtility.MemCpy(visibleCount, oldBatchLOD.visibleCount, BRGConstants.SizeOfInt);
+
+            for (int submeshIndex = 0; submeshIndex < m_SubmeshCount; submeshIndex++)
+            {
+                m_BatchGroups[submeshIndex] = new BatchGroup(in oldBatchLOD.m_BatchGroups[submeshIndex], in newBatchDescription); // create a new BatchGroup
             }
         }
 
@@ -86,12 +110,12 @@ namespace BRGContainer.Runtime
         }
         
         [BurstDiscard]
-        internal unsafe int Unregister(BatchRendererGroup batchRendererGroup)
+        internal unsafe int Unregister(BatchRendererGroup batchRendererGroup, bool needUnregisterMeshAndMat)
         {
             int removeBatchCount = 0;
             for (int submeshIndex = 0; submeshIndex < m_SubmeshCount; submeshIndex++)
             {
-                removeBatchCount += m_BatchGroups[submeshIndex].Unregister(batchRendererGroup);
+                removeBatchCount += m_BatchGroups[submeshIndex].Unregister(batchRendererGroup, needUnregisterMeshAndMat);
             }
 
             return removeBatchCount;
