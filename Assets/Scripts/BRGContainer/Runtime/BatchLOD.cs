@@ -2,12 +2,13 @@
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace BRGContainer.Runtime
 {
-    public struct BatchLOD
+    public struct BatchLOD : INativeDisposable
     {
         private readonly uint m_LODIndex;
         internal readonly int m_SubmeshCount;
@@ -16,8 +17,8 @@ namespace BRGContainer.Runtime
         // private readonly unsafe int* visibleArray;
         internal unsafe int* visibleCount;
         private readonly unsafe int* m_InstanceCount;
-        internal int m_VisibleIndexStartIndex;
         internal int m_DrawBatchIndex;
+        internal int m_VisibleInstanceIndexStartIndex;
 
         private Allocator m_Allocator;
 
@@ -33,7 +34,7 @@ namespace BRGContainer.Runtime
             get => *visibleCount;
         }
 
-        public unsafe BatchLOD(in BatchDescription description, in RendererDescription rendererDescription, in BatchWorldObjectLODData worldObjectLODData, uint lodIndex, int* instanceCount,  Allocator allocator)
+        public unsafe BatchLOD(in BatchDescription description, in RendererDescription rendererDescription, in BatchWorldObjectLODData worldObjectLODData, uint lodIndex, int visibleInstanceIndexStartIndex, int* instanceCount,  Allocator allocator)
         {
             m_Allocator = allocator;
             
@@ -41,7 +42,7 @@ namespace BRGContainer.Runtime
             m_SubmeshCount = worldObjectLODData.SubmeshCount;
             m_MaxInstanceCount = description.MaxInstanceCount;
             m_InstanceCount = instanceCount;
-            m_VisibleIndexStartIndex = 0;
+            m_VisibleInstanceIndexStartIndex = visibleInstanceIndexStartIndex;
             m_DrawBatchIndex = 0;
             
             m_BatchGroups = (BatchGroup*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchGroup * m_SubmeshCount, BRGConstants.AlignOfBatchGroup, m_Allocator);
@@ -66,7 +67,7 @@ namespace BRGContainer.Runtime
             m_SubmeshCount = oldBatchLOD.m_SubmeshCount;
             m_MaxInstanceCount = newBatchDescription.MaxInstanceCount;
             m_InstanceCount = instanceCount;
-            m_VisibleIndexStartIndex = oldBatchLOD.m_VisibleIndexStartIndex;
+            m_VisibleInstanceIndexStartIndex = oldBatchLOD.m_VisibleInstanceIndexStartIndex;
             m_DrawBatchIndex = oldBatchLOD.m_DrawBatchIndex;
             
             m_BatchGroups = (BatchGroup*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchGroup * m_SubmeshCount, BRGConstants.AlignOfBatchGroup, m_Allocator);
@@ -95,6 +96,12 @@ namespace BRGContainer.Runtime
                 UnsafeUtility.Free(visibleCount, m_Allocator);
                 m_Allocator = Allocator.Invalid;
             }
+        }
+
+        // @TODO
+        public JobHandle Dispose(JobHandle inputDeps)
+        {
+            return inputDeps;
         }
 
         [BurstDiscard]

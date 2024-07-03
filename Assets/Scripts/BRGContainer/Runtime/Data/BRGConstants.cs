@@ -7,6 +7,7 @@ namespace BRGContainer.Runtime
     public static class BRGConstants
     {
         internal static readonly uint MaxLODCount = 3u;
+        internal static readonly int DefaultVisibleInstanceIndexCount = 2;
         
         internal static readonly int SizeOfBool = UnsafeUtility.SizeOf<bool>();
         internal static readonly int SizeOfInt = UnsafeUtility.SizeOf<int>();

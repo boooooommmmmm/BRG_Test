@@ -39,8 +39,9 @@
                 {
                     ref var batchGroup = ref UnsafeUtility.ArrayElementAsRef<BatchGroup>(batchLOD.m_BatchGroups, (int)subMeshIndex);
                     int BatchLODGroupIndex = index;
-                    int visibleIndexOffset = BatchLODGroupIndex * 50 * (int)BRGConstants.MaxLODCount + (int)lodIndex * 50;
-                    int targetVisibleIndexOffset = batchLOD.m_VisibleIndexStartIndex ;
+                    // int visibleIndexOffset = BatchLODGroupIndex * BRGConstants.DefaultVisibleInstanceIndexCount * (int)BRGConstants.MaxLODCount + (int)lodIndex * BRGConstants.DefaultVisibleInstanceIndexCount;
+                    int visibleIndexOffset = batchLOD.m_VisibleInstanceIndexStartIndex;
+                    int targetVisibleIndexOffset = batchLOD.m_VisibleInstanceIndexStartIndex ;
                     
                     UnsafeUtility.MemCpy((void*)((IntPtr)OutputDrawCommands->visibleInstances + (targetVisibleIndexOffset) * UnsafeUtility.SizeOf<int>()), (void*)((IntPtr)DrawInstanceIndexData.GetUnsafePtr() + visibleIndexOffset * UnsafeUtility.SizeOf<int>()), visibleCount * UnsafeUtility.SizeOf<int>());
                     

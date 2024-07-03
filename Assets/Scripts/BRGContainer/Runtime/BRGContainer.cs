@@ -30,11 +30,17 @@ namespace BRGContainer.Runtime
         private readonly BatchRendererGroup m_BatchRendererGroup; // unity brg
         private readonly ContainerID m_ContainerId;
         private readonly Dictionary<BatchLODGroupID, GraphicsBuffer> m_GraphicsBuffers;
-        private readonly NativeParallelHashMap<BatchLODGroupID, BatchLODGroup> m_LODGroups;
+        private /*readonly*/ NativeParallelHashMap<BatchLODGroupID, BatchLODGroup> m_LODGroups;
 
         private Camera m_MainCamera;
         private float3 m_WorldOffset = float3.zero;
         internal int m_TotalBatchCount;
+
+        internal int m_VisibleInstanceIndexStartOffset = 0;
+        internal int m_VisibleInstanceIndexTotalCount = 0;
+        private NativeArray<int> m_VisibleInstanceIndexData;
+        private int visibleInstanceIndexRealTotalCount = 1;
+        private bool needForceUpdateVisibleInstanceIndexData = false;
 
 
         //static
@@ -49,6 +55,7 @@ namespace BRGContainer.Runtime
             m_BatchRendererGroup = new BatchRendererGroup(CullingCallback, IntPtr.Zero);
             m_GraphicsBuffers = new Dictionary<BatchLODGroupID, GraphicsBuffer>();
             m_LODGroups = new NativeParallelHashMap<BatchLODGroupID, BatchLODGroup>(1, Allocator.Persistent);
+            m_VisibleInstanceIndexData = new NativeArray<int>(visibleInstanceIndexRealTotalCount, Allocator.Persistent);
 
             m_Containers.TryAdd(m_ContainerId, this);
             m_TotalBatchCount = 0;
@@ -101,6 +108,9 @@ namespace BRGContainer.Runtime
             m_GraphicsBuffers.Add(batchLODGroupID, graphicsBuffer);
             m_LODGroups.Add(batchLODGroupID, batchLODGroup);
 
+            // check need update index data buffer
+            UpdateVisibleIndexDataOffset();
+
             return new LODGroupBatchHandle(m_ContainerId, batchLODGroupID, batchLODGroup.LODCount, batchLODGroup.GetNativeBuffer(), batchLODGroup.m_InstanceCount,
                 ref batchDescription);
         }
@@ -149,8 +159,8 @@ namespace BRGContainer.Runtime
 
             // no need copy graphics buffer data, LODGroupBatchHandle.Upload() will flush all data to graphics buffer
             GraphicsBuffer newGraphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, newBatchDescription.TotalBufferSize);
-            BatchLODGroup newBatchLODGroup = new BatchLODGroup(ref oldBatchLODGroup, in newBatchDescription, in batchLODGroupID);
-            
+            BatchLODGroup newBatchLODGroup = new BatchLODGroup(this, ref oldBatchLODGroup, in newBatchDescription, in batchLODGroupID);
+
             //dispose data
             m_GraphicsBuffers.Remove(batchLODGroupID);
             m_LODGroups.Remove(batchLODGroupID);
@@ -168,18 +178,14 @@ namespace BRGContainer.Runtime
             m_GraphicsBuffers.Add(batchLODGroupID, newGraphicsBuffer);
             m_LODGroups.Add(batchLODGroupID, newBatchLODGroup);
 
+            //check need resize visible index buffer
+            UpdateVisibleIndexDataOffset();
 
-            return new LODGroupBatchHandle(m_ContainerId, newBatchLODGroup.LODGroupID, newBatchLODGroup.LODCount, newBatchLODGroup.GetNativeBuffer(), newBatchLODGroup.m_InstanceCount,
+
+            return new LODGroupBatchHandle(m_ContainerId, newBatchLODGroup.LODGroupID, newBatchLODGroup.LODCount, newBatchLODGroup.GetNativeBuffer(),
+                newBatchLODGroup.m_InstanceCount,
                 ref newBatchDescription);
         }
-
-        // public unsafe void UpdateBatchHandle(ref LODGroupBatchHandle batchHandle)
-        // {
-        //     BatchDescription batchDescription = batchHandle.Description;
-        //     BatchID batchID = batchHandle.m_BatchId;
-        //     BatchGroup batchGroup = GetBatchLODGroup(batchID);
-        //     batchHandle = new LODGroupBatchHandle(m_ContainerId, batchID, batchGroup.GetNativeBuffer(), batchGroup.m_InstanceCount, ref batchDescription);
-        // }
 
         public void Dispose()
         {
@@ -191,6 +197,7 @@ namespace BRGContainer.Runtime
 
             m_LODGroups.Dispose();
             m_BatchRendererGroup.Dispose();
+            m_VisibleInstanceIndexData.Dispose();
 
             foreach (var graphicsBuffer in m_GraphicsBuffers.Values)
                 graphicsBuffer.Dispose();
@@ -200,6 +207,55 @@ namespace BRGContainer.Runtime
             m_WorldOffset = float3.zero;
 
             m_Containers.TryRemove(m_ContainerId, out _);
+        }
+
+        private unsafe void UpdateVisibleIndexDataOffset()
+        {
+            if (!needForceUpdateVisibleInstanceIndexData && (visibleInstanceIndexRealTotalCount >= m_VisibleInstanceIndexTotalCount))
+            {
+                return;
+            }
+
+            int startOffset = 0;
+            int totalLength = 0;
+            var keyArray = m_LODGroups.GetKeyArray(Allocator.Temp);
+            for (int index = 0; index < keyArray.Length; index++)
+            {
+                var batchLODGroupID = keyArray[index];
+                m_LODGroups.TryGetValue(batchLODGroupID, out var lodGroup);
+                int maxCount = lodGroup.m_VisibleInstanceIndexMaxCount;
+                for (int lodIndex = 0; lodIndex < lodGroup.LODCount; lodIndex++)
+                {
+                    ref var batchLOD = ref UnsafeUtility.ArrayElementAsRef<BatchLOD>(lodGroup.m_BatchLODs, lodIndex);
+                    batchLOD.m_VisibleInstanceIndexStartIndex = startOffset;
+                    totalLength += maxCount;
+                    startOffset += maxCount;
+                }
+
+                m_LODGroups[batchLODGroupID] = lodGroup;
+            }
+
+            needForceUpdateVisibleInstanceIndexData = false;
+            int allocateSize = math.ceilpow2(totalLength);
+            m_VisibleInstanceIndexTotalCount = totalLength;
+            m_VisibleInstanceIndexStartOffset = startOffset;
+
+            if (visibleInstanceIndexRealTotalCount >= allocateSize)
+            {
+                Debug.LogError($"UpdateVisibleIndexDataOffset: tidy without resize");
+            }
+            else
+            {
+                visibleInstanceIndexRealTotalCount = allocateSize;
+                m_VisibleInstanceIndexData.Dispose();
+                m_VisibleInstanceIndexData = new NativeArray<int>(allocateSize, Allocator.Persistent);
+                Debug.LogError($"UpdateVisibleIndexDataOffset: resize visible instance index buffer size to: [{allocateSize}]");
+            }
+        }
+
+        public void NeedForceUpdateVisibleInstanceIndexData()
+        {
+            needForceUpdateVisibleInstanceIndexData = true;
         }
 
         #region Static APIs

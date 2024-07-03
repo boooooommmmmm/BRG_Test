@@ -46,7 +46,8 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
     {
         if (_isAdded == false)
         {
-            AddBatch();
+            for (int i = 0; i < 2; i++)
+                AddBatch((i % 2) == 0 ? i : -i);
             // AddBatch();
             _isAdded = true;
         }
@@ -58,7 +59,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
     }
 
 
-    private void AddBatch()
+    private void AddBatch(int offset = 0)
     {
         aliveItemCount = m_Count;
 
@@ -68,7 +69,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
         {
             int dis = (i + 1) / 2 * 2;
             int sign = (i & 2) == 0 ? 1 : -1;
-            _targetPos[i] = new float3(0, 0, dis * sign);
+            _targetPos[i] = new float3(0, offset, dis * sign);
         }
         
         var materialProperties = new NativeArray<MaterialProperty>(1, Allocator.Temp)

@@ -21,7 +21,7 @@ namespace BRGContainer.Runtime
             return CullingParallel(rendererGroup, cullingContext, cullingOutput, userContext);
         }
 
-        private const bool _forceJobFence = true; //default : false
+        private const bool _forceJobFence = false; //default : false
         private const bool _useMainCameraCulling = true; //default : true
 
         private static float3 commonExtents = new float3(2, 2, 2);
@@ -51,8 +51,8 @@ namespace BRGContainer.Runtime
                 cullingPlanes.Dispose();
                 cullingPlanes = cullingContext.cullingPlanes;
             }
-            
-            var drawInstanceIndexData = new NativeArray<int>(batchLODGroups.Length * 50 * (int)BRGConstants.MaxLODCount, Allocator.TempJob);
+
+            var drawInstanceIndexData = m_VisibleInstanceIndexData;
             
             var offset = 0;
             var batchJobHandles = stackalloc JobHandle[batchLODGroups.Length];
@@ -126,6 +126,7 @@ namespace BRGContainer.Runtime
                 OutputDrawCommands = drawCommands,
                 Counters = drawCounters,
                 TotalBatchCount = m_TotalBatchCount,
+                MaxVisibleCount = m_VisibleInstanceIndexTotalCount,
             };
             var allocateOutputDrawCommandsHandle = allocateOutputDrawCommandsJob.Schedule(countersHandle);
             allocateOutputDrawCommandsHandle = drawCounters.Dispose(allocateOutputDrawCommandsHandle);
@@ -159,7 +160,8 @@ namespace BRGContainer.Runtime
             var resultHandle = copyVisibilityIndicesToArrayJob.ScheduleParallel(batchLODGroups.Length, 32, createDrawCommandsHandle);
             if (_forceJobFence) resultHandle.Complete();
             
-            resultHandle = JobHandle.CombineDependencies(/*drawRangeData.Dispose(resultHandle),*/ batchLODGroups.Dispose(resultHandle), drawInstanceIndexData.Dispose(resultHandle));
+            // resultHandle = JobHandle.CombineDependencies(/*drawRangeData.Dispose(resultHandle),*/ batchLODGroups.Dispose(resultHandle), drawInstanceIndexData.Dispose(resultHandle));
+            resultHandle = batchLODGroups.Dispose(resultHandle);
             resultHandle = cullingPlanes.Dispose(resultHandle);
             if (_forceJobFence) resultHandle.Complete();
             

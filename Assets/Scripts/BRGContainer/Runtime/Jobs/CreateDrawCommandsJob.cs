@@ -36,7 +36,7 @@
                     ref var batchGroup = ref UnsafeUtility.ArrayElementAsRef<BatchGroup>(batchLOD.m_BatchGroups, (int)subMeshIndex);
                     var batchDrawCommand = new BatchDrawCommand
                     {
-                        visibleOffset = (uint)batchLOD.m_VisibleIndexStartIndex,
+                        visibleOffset = (uint)batchLOD.m_VisibleInstanceIndexStartIndex,
                         visibleCount = (uint)batchLOD.VisibleCount,
                         batchID = batchGroup[0],
                         materialID = batchGroup.BatchRendererData.MaterialID,

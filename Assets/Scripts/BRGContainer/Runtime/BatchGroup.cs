@@ -20,7 +20,7 @@ namespace BRGContainer.Runtime
 
     [StructLayout(LayoutKind.Sequential)]
     [DebuggerDisplay("Count = {WindowCount}, InstanceCount = {InstanceCount}")]
-    public struct BatchGroup : INativeDisposable, IEnumerable<BatchID>
+    public struct BatchGroup : INativeDisposable//, IEnumerable<BatchID>
     {
         // internal BatchDescription m_BatchDescription;
         public BatchRendererData BatchRendererData;
@@ -65,56 +65,6 @@ namespace BRGContainer.Runtime
 
             m_Batches = (BatchID*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchID * m_BufferLength, UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
         }
-
-        // copy ctor for resizing batchGroup
-        // public unsafe BatchGroup(ref BatchGroup _batchGroup, ref BatchDescription description)
-        // {
-        //     m_BatchDescription = description;
-        //     BatchRendererData = _batchGroup.BatchRendererData;
-        //     m_BufferLength = m_BatchDescription.TotalBufferSize / 16;
-        //     WindowCount = m_BatchDescription.WindowCount;
-        //
-        //     m_Allocator = _batchGroup.m_Allocator;
-        //
-        //     m_InstanceCount = (int*)UnsafeUtility.Malloc(s_SizeOfInt, UnsafeUtility.AlignOf<int>(), m_Allocator);
-        //     UnsafeUtility.MemCpy(m_InstanceCount, _batchGroup.m_InstanceCount, UnsafeUtility.SizeOf<int>());
-        //     m_AliveCount = (int*)UnsafeUtility.Malloc(s_SizeOfInt, UnsafeUtility.AlignOf<int>(), m_Allocator);
-        //     UnsafeUtility.MemCpy(m_AliveCount, _batchGroup.m_AliveCount, UnsafeUtility.SizeOf<int>());
-        //
-        //     // resize buffers
-        //     int lastMaxCount = _batchGroup.m_BatchDescription.MaxInstanceCount;
-        //     int lastBufferLength = _batchGroup.m_BufferLength;
-        //     int currentMaxCount = m_BatchDescription.MaxInstanceCount;
-        //     int currentBufferLength = m_BufferLength;
-        //     m_DataBuffer = (float4*)UnsafeUtility.Malloc(s_SizeOfFloat4 * currentBufferLength, UnsafeUtility.AlignOf<float4>(), m_Allocator);
-        //     UnsafeUtility.MemClear(m_DataBuffer, s_SizeOfFloat4 * currentBufferLength);
-        //     m_Batches = (BatchID*)UnsafeUtility.Malloc(s_SizeOfBatchID * currentBufferLength, UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
-        //     m_Visibles = (int*)UnsafeUtility.Malloc(s_SizeOfInt * currentMaxCount, UnsafeUtility.AlignOf<int>(), m_Allocator);
-        //     m_State = (uint*)UnsafeUtility.Malloc(s_SizeOfUint * currentMaxCount,UnsafeUtility.AlignOf<uint>(), m_Allocator);
-        //     m_Alives = (bool*)UnsafeUtility.Malloc(s_SizeOfBool * currentMaxCount,UnsafeUtility.AlignOf<bool>(), m_Allocator);
-        //     UnsafeUtility.MemClear(m_Alives, s_SizeOfBool * currentMaxCount);
-        //
-        //     BatchDescription oldBatchDescription = _batchGroup.m_BatchDescription;
-        //     for (int i = 0, lastDataOffset = 0, newDataOffset = 0; i < oldBatchDescription.MetadataLength; i++)
-        //     {
-        //         MetadataValue oldValue = oldBatchDescription[i];
-        //         MetadataInfo oldInfo = oldBatchDescription.GetMetadataInfo(oldValue.NameID);
-        //         int size = oldInfo.Size;
-        //         
-        //         UnsafeUtility.MemCpy(m_DataBuffer + newDataOffset, _batchGroup.m_DataBuffer + lastDataOffset, size * lastMaxCount);
-        //
-        //         newDataOffset += size * currentMaxCount / s_SizeOfFloat4;
-        //         lastDataOffset += size * lastMaxCount / s_SizeOfFloat4;
-        //     }
-        //
-        //     UnsafeUtility.MemCpy(m_Batches, _batchGroup.m_Batches, s_SizeOfBatchID * lastBufferLength);
-        //     UnsafeUtility.MemCpy(m_Visibles, _batchGroup.m_Visibles, s_SizeOfInt * lastMaxCount);
-        //     UnsafeUtility.MemCpy(m_State, _batchGroup.m_State, s_SizeOfUint * lastMaxCount);
-        //     UnsafeUtility.MemCpy(m_Alives, _batchGroup.m_Alives, s_SizeOfBool * lastMaxCount);
-        //
-        //     // _batchGroup.Dispose();
-        // }
-        
 
         [BurstDiscard]
         public unsafe int Register([NotNull] BatchRendererGroup batchRendererGroup, GraphicsBufferHandle bufferHandle, NativeArray<MetadataValue> metadataValues)
@@ -211,52 +161,52 @@ namespace BRGContainer.Runtime
 
         #endregion
 
-        #region Enumerator
-        public readonly Enumerator GetEnumerator()
-        {
-            return new Enumerator(this);
-        }
-
-        IEnumerator<BatchID> IEnumerable<BatchID>.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public struct Enumerator : IEnumerator<BatchID>
-        {
-            private readonly BatchGroup m_BatchGroup;
-            private int m_Index;
-
-            public BatchID Current => m_BatchGroup[m_Index];
-
-            object IEnumerator.Current => Current;
-
-            public Enumerator(BatchGroup batchGroup)
-            {
-                m_BatchGroup = batchGroup;
-                m_Index = -1;
-            }
-
-            public bool MoveNext()
-            {
-                ++m_Index;
-                return m_Index < m_BatchGroup.WindowCount;
-            }
-
-            public void Reset()
-            {
-                m_Index = -1;
-            }
-
-            public void Dispose()
-            {
-            }
-        }
-        #endregion
+        // #region Enumerator
+        // public readonly Enumerator GetEnumerator()
+        // {
+        //     return new Enumerator(this);
+        // }
+        //
+        // IEnumerator<BatchID> IEnumerable<BatchID>.GetEnumerator()
+        // {
+        //     return GetEnumerator();
+        // }
+        //
+        // IEnumerator IEnumerable.GetEnumerator()
+        // {
+        //     return GetEnumerator();
+        // }
+        //
+        // public struct Enumerator : IEnumerator<BatchID>
+        // {
+        //     private readonly BatchGroup m_BatchGroup;
+        //     private int m_Index;
+        //
+        //     public BatchID Current => m_BatchGroup[m_Index];
+        //
+        //     object IEnumerator.Current => Current;
+        //
+        //     public Enumerator(BatchGroup batchGroup)
+        //     {
+        //         m_BatchGroup = batchGroup;
+        //         m_Index = -1;
+        //     }
+        //
+        //     public bool MoveNext()
+        //     {
+        //         ++m_Index;
+        //         return m_Index < m_BatchGroup.WindowCount;
+        //     }
+        //
+        //     public void Reset()
+        //     {
+        //         m_Index = -1;
+        //     }
+        //
+        //     public void Dispose()
+        //     {
+        //     }
+        // }
+        // #endregion
     }
 }

@@ -37,7 +37,7 @@ namespace BRGContainer.Runtime
         private unsafe BatchLODGroup CreateBatchLODGroup(in BatchDescription batchDescription, in RendererDescription rendererDescription, in BatchLODGroupID batchLODGroupID, ref BatchWorldObjectData worldObjectData, Allocator allocator)
         {
             RegisterMeshAndMaterialToBRG(ref worldObjectData);
-            return new BatchLODGroup(in batchDescription, in rendererDescription, in batchLODGroupID, in worldObjectData, allocator);
+            return new BatchLODGroup(this, in batchDescription, in rendererDescription, in batchLODGroupID, in worldObjectData, allocator);
         }
 
         private void RegisterMeshAndMaterialToBRG(ref BatchWorldObjectData worldObjectData)

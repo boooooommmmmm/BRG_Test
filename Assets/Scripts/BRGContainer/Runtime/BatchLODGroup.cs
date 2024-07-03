@@ -29,6 +29,7 @@
         private readonly int m_BufferLength;
         private readonly uint m_LODCount;
         private /*readonly*/ Allocator m_Allocator;
+        internal int m_VisibleInstanceIndexMaxCount;
         internal readonly BatchDescription m_BatchDescription;
         public readonly RendererDescription RendererDescription;
         public BatchLODGroupID LODGroupID;
@@ -68,7 +69,7 @@
         public unsafe BatchLOD* GetByRef(int index) => m_BatchLODs + index;
 
 
-        public unsafe BatchLODGroup(in BatchDescription batchDescription, in RendererDescription rendererDescription, in BatchLODGroupID batchLODGroupID, in BatchWorldObjectData worldObjectData, Allocator allocator)
+        public unsafe BatchLODGroup(BRGContainer container, in BatchDescription batchDescription, in RendererDescription rendererDescription, in BatchLODGroupID batchLODGroupID, in BatchWorldObjectData worldObjectData, Allocator allocator)
         {
             m_Allocator = allocator;
             m_BatchDescription = batchDescription;
@@ -94,15 +95,20 @@
             // uint lodCount = (uint)Mathf.Min((uint)worldObjectData.LODCount, s_LODCount);
             uint lodCount = (uint)Mathf.Min((uint)m_LODCount, s_LODCount); 
             m_BatchLODs = (BatchLOD*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<BatchLOD>() * lodCount, UnsafeUtility.AlignOf<BatchLOD>(), m_Allocator);
+            m_VisibleInstanceIndexMaxCount = batchDescription.MaxInstanceCount < BRGConstants.DefaultVisibleInstanceIndexCount ? BRGConstants.DefaultVisibleInstanceIndexCount : math.ceilpow2(batchDescription.MaxInstanceCount);
             for (uint lodIndex = 0u; lodIndex < lodCount; lodIndex++)
             {
+                int startOffset = container.m_VisibleInstanceIndexStartOffset;
+                container.m_VisibleInstanceIndexTotalCount += m_VisibleInstanceIndexMaxCount;
+                container.m_VisibleInstanceIndexStartOffset += m_VisibleInstanceIndexMaxCount; // offset for next BatchLOD
+                
                 BatchWorldObjectLODData batchWorldObjectLODData = worldObjectData[lodIndex];
-                m_BatchLODs[lodIndex] = new BatchLOD(in batchDescription, in rendererDescription, in batchWorldObjectLODData, lodIndex, m_InstanceCount, m_Allocator);
+                m_BatchLODs[lodIndex] = new BatchLOD(in batchDescription, in rendererDescription, in batchWorldObjectLODData, lodIndex, startOffset, m_InstanceCount, m_Allocator);
             }
         }
 
         // copy ctor for resizing BatchLODGroup
-        public unsafe BatchLODGroup(ref BatchLODGroup oldBatchLODGroup, in BatchDescription newBatchDescription, in BatchLODGroupID batchLODGroupID)
+        public unsafe BatchLODGroup(BRGContainer container, ref BatchLODGroup oldBatchLODGroup, in BatchDescription newBatchDescription, in BatchLODGroupID batchLODGroupID)
         {
             m_Allocator = oldBatchLODGroup.m_Allocator;
             m_BatchDescription = newBatchDescription;
@@ -110,7 +116,14 @@
             // m_LODCount = (uint)worldObjectData.LODCount;
             m_LODCount = BRGConstants.MaxLODCount; // use default lod count 
             LODGroupID = batchLODGroupID;
-            
+            m_VisibleInstanceIndexMaxCount = oldBatchLODGroup.m_VisibleInstanceIndexMaxCount;
+
+            if (newBatchDescription.MaxInstanceCount > oldBatchLODGroup.m_VisibleInstanceIndexMaxCount)
+            {
+                container.NeedForceUpdateVisibleInstanceIndexData(); // notify container to resize visible index data buffer
+                m_VisibleInstanceIndexMaxCount = math.ceilpow2(newBatchDescription.MaxInstanceCount);
+            }
+
             m_BufferLength = m_BatchDescription.TotalBufferSize / 16;
             
             // resize buffers

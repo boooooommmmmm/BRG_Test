@@ -66,7 +66,7 @@
                 }
 
                 batchLOD.m_DrawBatchIndex = batchDrawOffset;
-                batchLOD.m_VisibleIndexStartIndex = batchOffset * 50 * (int)BRGConstants.MaxLODCount + (int)lodIndex * 50 ; //@TODO 
+                // batchLOD.m_VisibleInstanceIndexStartIndex = batchOffset * BRGConstants.DefaultVisibleInstanceIndexCount * (int)BRGConstants.MaxLODCount + (int)lodIndex * batchLODGroup.m_VisibleInstanceIndexMaxCount; // sven test 
                 batchDrawOffset += subMeshCount;
                 // break;
             }

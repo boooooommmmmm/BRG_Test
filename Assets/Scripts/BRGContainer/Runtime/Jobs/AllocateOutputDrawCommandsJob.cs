@@ -16,6 +16,7 @@
         [ReadOnly] public NativeArray<int> Counters;
 
         [ReadOnly] public int TotalBatchCount;
+        [ReadOnly] public int MaxVisibleCount; 
         
         public unsafe void Execute()
         {
@@ -23,7 +24,8 @@
             var drawRangesCount = Counters[1];
             var drawCommandCount = Counters[2];
             
-            var maxVisibleCount = TotalBatchCount * 50 * (int)BRGConstants.MaxLODCount;
+            // var maxVisibleCount = TotalBatchCount * BRGConstants.DefaultVisibleInstanceIndexCount * (int)BRGConstants.MaxLODCount;
+            var maxVisibleCount = MaxVisibleCount;
             OutputDrawCommands->visibleInstanceCount = visibleCount;
             OutputDrawCommands->visibleInstances = (int*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<int>() * maxVisibleCount, UnsafeUtility.AlignOf<int>(), Allocator.TempJob);
 
