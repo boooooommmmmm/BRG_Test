@@ -1,0 +1,15 @@
+{
+  "name": "com.star.brgcontainer",
+  "description": "brg container",
+  "version": "0.0.1",
+  "displayName": "BRG Container",
+  "dependencies": {
+  },
+  "samples": [
+    {
+      "displayName": "SampleScene",
+      "description": "",
+      "path": "Samples~/SampleScene"
+    }
+  ]
+}

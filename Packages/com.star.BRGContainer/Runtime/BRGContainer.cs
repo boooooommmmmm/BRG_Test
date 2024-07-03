@@ -242,14 +242,14 @@ namespace BRGContainer.Runtime
 
             if (visibleInstanceIndexRealTotalCount >= allocateSize)
             {
-                Debug.LogError($"UpdateVisibleIndexDataOffset: tidy without resize");
+                // Debug.LogError($"UpdateVisibleIndexDataOffset: tidy without resize");
             }
             else
             {
                 visibleInstanceIndexRealTotalCount = allocateSize;
                 m_VisibleInstanceIndexData.Dispose();
                 m_VisibleInstanceIndexData = new NativeArray<int>(allocateSize, Allocator.Persistent);
-                Debug.LogError($"UpdateVisibleIndexDataOffset: resize visible instance index buffer size to: [{allocateSize}]");
+                // Debug.LogError($"UpdateVisibleIndexDataOffset: resize visible instance index buffer size to: [{allocateSize}]");
             }
         }
 
