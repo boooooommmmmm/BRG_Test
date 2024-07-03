@@ -20,11 +20,11 @@
     [DebuggerDisplay("InstanceCount = {InstanceCount}")]
     public struct BatchLODGroup : INativeDisposable
     {
-        private static int s_LODOffset = 0;
-        private static int s_ActiveOffset = 3; // 1 << 3 = 8
-        private static uint s_bLODMask = 0x7; // 0000 0000 0000 0111
-        private static uint s_bActiveMask = 0x8; // 1 << 3
-        private static uint s_LODCount = 4u;
+        private static readonly int s_LODOffset = 0;
+        private static readonly int s_ActiveOffset = 3; // 1 << 3 = 8
+        private static readonly uint s_bLODMask = 0x7; // 0000 0000 0000 0111
+        private static readonly uint s_bActiveMask = 0x8; // 1 << 3
+        private static readonly uint s_LODCount = 4u;
 
         private readonly int m_BufferLength;
         private readonly uint m_LODCount;

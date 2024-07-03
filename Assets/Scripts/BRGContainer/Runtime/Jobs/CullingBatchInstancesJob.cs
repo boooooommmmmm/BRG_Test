@@ -67,8 +67,7 @@ namespace BRGContainer.Runtime
             BatchLOD* batchLOD = BatchLODGroup.GetByRef((int)lodIndex);
             int count = Interlocked.Increment(ref UnsafeUtility.AsRef<int>((*batchLOD).visibleCount));
             // (*batchLOD).VisibleArrayPtr()[count - 1] = index;
-            
-            // int visibleIndexOffset = BatchLODGroupIndex * BRGConstants.DefaultVisibleInstanceIndexCount * (int)BRGConstants.MaxLODCount + (int)lodIndex * BRGConstants.DefaultVisibleInstanceIndexCount;
+
             int visibleIndexOffset = batchLOD->m_VisibleInstanceIndexStartIndex;
             DrawInstanceIndexData[visibleIndexOffset + count - 1] = index;
         }

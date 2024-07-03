@@ -114,11 +114,6 @@ namespace BRGContainer.Runtime
 
             var countersHandle = computeDrawCountersJob.ScheduleByRef(batchLODGroups.Length, 64, cullingHandle);
             if (_forceJobFence) countersHandle.Complete();
-
-            // return countersHandle;
-
-            // var countersHandle = JobHandleUnsafeUtility.CombineDependencies(batchJobHandles, batchLODGroups.Length);
-            // if (_forceJobFence) countersHandle.Complete();
             
             var drawCommands = (BatchCullingOutputDrawCommands*)cullingOutput.drawCommands.GetUnsafePtr();
             var allocateOutputDrawCommandsJob = new AllocateOutputDrawCommandsJob

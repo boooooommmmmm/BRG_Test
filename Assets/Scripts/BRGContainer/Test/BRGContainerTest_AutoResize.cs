@@ -46,7 +46,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
     {
         if (_isAdded == false)
         {
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 100; i++)
                 AddBatch((i % 2) == 0 ? i : -i);
             // AddBatch();
             _isAdded = true;

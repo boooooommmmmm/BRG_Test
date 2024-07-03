@@ -34,12 +34,8 @@
                     continue;
                 }
 
-                int drawRangeBeginIndex = batchLOD.m_DrawBatchIndex;
                 for (uint subMeshIndex = 0; subMeshIndex < batchLOD.SubMeshCount; subMeshIndex++)
                 {
-                    ref var batchGroup = ref UnsafeUtility.ArrayElementAsRef<BatchGroup>(batchLOD.m_BatchGroups, (int)subMeshIndex);
-                    int BatchLODGroupIndex = index;
-                    // int visibleIndexOffset = BatchLODGroupIndex * BRGConstants.DefaultVisibleInstanceIndexCount * (int)BRGConstants.MaxLODCount + (int)lodIndex * BRGConstants.DefaultVisibleInstanceIndexCount;
                     int visibleIndexOffset = batchLOD.m_VisibleInstanceIndexStartIndex;
                     int targetVisibleIndexOffset = batchLOD.m_VisibleInstanceIndexStartIndex ;
                     
