@@ -203,8 +203,14 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
 
     private void OnDestroy()
     {
-        m_LODGroupBatchHandles.Destroy();
-        m_BRGContainer?.Dispose();
+        try
+        {
+            m_LODGroupBatchHandles.Destroy();
+        }
+        finally
+        {
+            m_BRGContainer?.Dispose();
+        }
     }
 }
 

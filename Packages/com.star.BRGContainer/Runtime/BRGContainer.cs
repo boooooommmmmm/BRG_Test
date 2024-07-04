@@ -231,24 +231,31 @@ namespace BRGContainer.Runtime
 
         public void Dispose()
         {
-            foreach (var group in m_LODGroups)
+            try 
             {
-                group.Value.Unregister(m_BatchRendererGroup);
-                group.Value.Dispose();
+                foreach (var group in m_LODGroups)
+                {
+                    group.Value.Unregister(m_BatchRendererGroup);
+                    group.Value.Dispose();
+                }
+
+                m_LODGroups.Dispose();
+                // m_BatchRendererGroup.Dispose();
+                m_VisibleInstanceIndexData.Dispose();
+
+                foreach (var graphicsBuffer in m_GraphicsBuffers.Values)
+                    graphicsBuffer.Dispose();
+                m_GraphicsBuffers.Clear();
+
+                m_MainCamera = null;
+                m_WorldOffset = float3.zero;
+
+                m_Containers.TryRemove(m_ContainerId, out _);
             }
-
-            m_LODGroups.Dispose();
-            m_BatchRendererGroup.Dispose();
-            m_VisibleInstanceIndexData.Dispose();
-
-            foreach (var graphicsBuffer in m_GraphicsBuffers.Values)
-                graphicsBuffer.Dispose();
-            m_GraphicsBuffers.Clear();
-
-            m_MainCamera = null;
-            m_WorldOffset = float3.zero;
-
-            m_Containers.TryRemove(m_ContainerId, out _);
+            finally 
+            {
+                m_BatchRendererGroup.Dispose();
+            }
         }
 
         private unsafe void UpdateVisibleIndexDataOffset()
