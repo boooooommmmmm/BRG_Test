@@ -31,7 +31,7 @@
         private /*readonly*/ Allocator m_Allocator;
         internal int m_VisibleInstanceIndexMaxCount;
         internal readonly BatchDescription m_BatchDescription;
-        public readonly RendererDescription RendererDescription;
+        // public readonly RendererDescription RendererDescription;
         public BatchLODGroupID LODGroupID;
 
         [NativeDisableUnsafePtrRestriction] internal unsafe int* m_InstanceCount;
@@ -59,21 +59,34 @@
 
         public readonly BatchDescription BatchDescription => m_BatchDescription;
 
-        public readonly unsafe BatchLOD this[uint index] => m_BatchLODs[(int)index];
+        // public readonly unsafe BatchLOD this[uint index] => m_BatchLODs[(int)index];
+        public readonly unsafe BatchLOD this[uint index]
+        {
+            get
+            {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+                if (index >= m_LODCount)
+                    throw new Exception($"SetLODRenderDataAndRegister LOD index cannot be larger than [{m_LODCount}], current get: [{index}]");
+#endif
+                return m_BatchLODs[(int)index];
+            }
+        }
 
         public readonly unsafe int InstanceCount
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => *m_InstanceCount;
         }
+
         public unsafe BatchLOD* GetByRef(int index) => m_BatchLODs + index;
 
 
-        public unsafe BatchLODGroup(BRGContainer container, in BatchDescription batchDescription, in RendererDescription rendererDescription, in BatchLODGroupID batchLODGroupID, in BatchWorldObjectData worldObjectData, Allocator allocator)
+        public unsafe BatchLODGroup(BRGContainer container, in BatchDescription batchDescription, in RendererDescription rendererDescription, in BatchLODGroupID batchLODGroupID,
+            in BatchWorldObjectData worldObjectData, Allocator allocator, bool isEmptyLODData)
         {
             m_Allocator = allocator;
             m_BatchDescription = batchDescription;
-            RendererDescription = rendererDescription;
+            // RendererDescription = rendererDescription;
             // m_LODCount = (uint)worldObjectData.LODCount;
             m_LODCount = BRGConstants.MaxLODCount; // use default lod count 
             LODGroupID = batchLODGroupID;
@@ -93,17 +106,26 @@
             m_AABBs = (HISMAABB*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<HISMAABB>() * maxCount, UnsafeUtility.AlignOf<HISMAABB>(), m_Allocator);
 
             // uint lodCount = (uint)Mathf.Min((uint)worldObjectData.LODCount, s_LODCount);
-            uint lodCount = (uint)Mathf.Min((uint)m_LODCount, s_LODCount); 
+            uint lodCount = (uint)Mathf.Min((uint)m_LODCount, s_LODCount);
             m_BatchLODs = (BatchLOD*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<BatchLOD>() * lodCount, UnsafeUtility.AlignOf<BatchLOD>(), m_Allocator);
-            m_VisibleInstanceIndexMaxCount = batchDescription.MaxInstanceCount < BRGConstants.DefaultVisibleInstanceIndexCount ? BRGConstants.DefaultVisibleInstanceIndexCount : math.ceilpow2(batchDescription.MaxInstanceCount);
+            m_VisibleInstanceIndexMaxCount = batchDescription.MaxInstanceCount < BRGConstants.DefaultVisibleInstanceIndexCount
+                ? BRGConstants.DefaultVisibleInstanceIndexCount
+                : math.ceilpow2(batchDescription.MaxInstanceCount);
             for (uint lodIndex = 0u; lodIndex < lodCount; lodIndex++)
             {
                 int startOffset = container.m_VisibleInstanceIndexStartOffset;
                 container.m_VisibleInstanceIndexTotalCount += m_VisibleInstanceIndexMaxCount;
                 container.m_VisibleInstanceIndexStartOffset += m_VisibleInstanceIndexMaxCount; // offset for next BatchLOD
-                
-                BatchWorldObjectLODData batchWorldObjectLODData = worldObjectData[lodIndex];
-                m_BatchLODs[lodIndex] = new BatchLOD(in batchDescription, in rendererDescription, in batchWorldObjectLODData, lodIndex, startOffset, m_InstanceCount, m_Allocator);
+
+                if (isEmptyLODData)
+                {
+                    m_BatchLODs[lodIndex] = new BatchLOD(in batchDescription, lodIndex, startOffset, m_InstanceCount, m_Allocator); // create empty batchLOD.
+                }
+                else
+                {
+                    BatchWorldObjectLODData batchWorldObjectLODData = worldObjectData[lodIndex];
+                    m_BatchLODs[lodIndex] = new BatchLOD(in batchDescription, in rendererDescription, in batchWorldObjectLODData, lodIndex, startOffset, m_InstanceCount, m_Allocator);
+                }
             }
         }
 
@@ -112,7 +134,7 @@
         {
             m_Allocator = oldBatchLODGroup.m_Allocator;
             m_BatchDescription = newBatchDescription;
-            RendererDescription = oldBatchLODGroup.RendererDescription;
+            // RendererDescription = oldBatchLODGroup.RendererDescription;
             // m_LODCount = (uint)worldObjectData.LODCount;
             m_LODCount = BRGConstants.MaxLODCount; // use default lod count 
             LODGroupID = batchLODGroupID;
@@ -125,25 +147,25 @@
             }
 
             m_BufferLength = m_BatchDescription.TotalBufferSize / 16;
-            
+
             // resize buffers
             int lastMaxCount = oldBatchLODGroup.m_BatchDescription.MaxInstanceCount;
             int lastBufferLength = oldBatchLODGroup.m_BufferLength;
             int currentMaxCount = m_BatchDescription.MaxInstanceCount;
             int currentBufferLength = m_BufferLength;
-            
+
             m_InstanceCount = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt, UnsafeUtility.AlignOf<int>(), m_Allocator);
             UnsafeUtility.MemCpy(m_InstanceCount, oldBatchLODGroup.m_InstanceCount, UnsafeUtility.SizeOf<int>());
             m_ActiveCount = (int*)UnsafeUtility.Malloc(BRGConstants.SizeOfInt, BRGConstants.AlignOfInt, m_Allocator);
             UnsafeUtility.MemCpy(m_ActiveCount, oldBatchLODGroup.m_ActiveCount, UnsafeUtility.SizeOf<int>());
-            
+
             m_State = (uint*)UnsafeUtility.Malloc(BRGConstants.SizeOfUint * currentMaxCount, BRGConstants.AlignOfUint, m_Allocator);
             UnsafeUtility.MemClear(m_State, BRGConstants.SizeOfUint * currentMaxCount);
             UnsafeUtility.MemCpy(m_State, oldBatchLODGroup.m_State, BRGConstants.SizeOfUint * lastMaxCount);
-            
+
             m_AABBs = (HISMAABB*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<HISMAABB>() * currentMaxCount, UnsafeUtility.AlignOf<HISMAABB>(), m_Allocator);
             UnsafeUtility.MemCpy(m_AABBs, oldBatchLODGroup.m_AABBs, UnsafeUtility.SizeOf<HISMAABB>() * lastMaxCount);
-            
+
             m_DataBuffer = (float4*)UnsafeUtility.Malloc(BRGConstants.SizeOfFloat4 * m_BufferLength, BRGConstants.AlignOfFloat4, m_Allocator);
             UnsafeUtility.MemClear(m_DataBuffer, BRGConstants.SizeOfFloat4 * currentBufferLength);
             BatchDescription oldBatchDescription = oldBatchLODGroup.m_BatchDescription;
@@ -152,14 +174,14 @@
                 MetadataValue oldValue = oldBatchDescription[i];
                 MetadataInfo oldInfo = oldBatchDescription.GetMetadataInfo(oldValue.NameID);
                 int size = oldInfo.Size;
-                
+
                 UnsafeUtility.MemCpy(m_DataBuffer + newDataOffset, oldBatchLODGroup.m_DataBuffer + lastDataOffset, size * lastMaxCount);
-        
+
                 newDataOffset += size * currentMaxCount / BRGConstants.SizeOfFloat4;
                 lastDataOffset += size * lastMaxCount / BRGConstants.SizeOfFloat4;
             }
-            
-            uint lodCount = oldBatchLODGroup.LODCount; 
+
+            uint lodCount = oldBatchLODGroup.LODCount;
             m_BatchLODs = (BatchLOD*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<BatchLOD>() * lodCount, UnsafeUtility.AlignOf<BatchLOD>(), m_Allocator);
             for (uint lodIndex = 0u; lodIndex < lodCount; lodIndex++)
             {
@@ -183,7 +205,8 @@
             var metadataValues = m_BatchDescription.AsNativeArray();
             for (uint lodIndex = 0; lodIndex < m_LODCount; lodIndex++)
             {
-                totalRegisterBatchCount += m_BatchLODs[lodIndex].Register(batchRendererGroup, in bufferHandle, metadataValues);
+                if (m_BatchLODs[lodIndex].IsInitialied)
+                    totalRegisterBatchCount += m_BatchLODs[lodIndex].Register(batchRendererGroup, in bufferHandle, metadataValues);
             }
 
             return totalRegisterBatchCount;
@@ -196,7 +219,8 @@
             int removeBatchCount = 0;
             for (uint lodIndex = 0; lodIndex < m_LODCount; lodIndex++)
             {
-                removeBatchCount += m_BatchLODs[lodIndex].Unregister(batchRendererGroup, needUnregisterMeshAndMat);
+                if (m_BatchLODs[lodIndex].IsInitialied)
+                    removeBatchCount += m_BatchLODs[lodIndex].Unregister(batchRendererGroup, needUnregisterMeshAndMat);
             }
 
             return removeBatchCount;
@@ -293,9 +317,9 @@
         }
 
         // @TODO: use jobs to dispose
-         public unsafe JobHandle Dispose(JobHandle inputDeps)
-         {
-             return inputDeps;
+        public unsafe JobHandle Dispose(JobHandle inputDeps)
+        {
+            return inputDeps;
 // #if ENABLE_UNITY_COLLECTIONS_CHECKS
 //             if (m_Allocator == Allocator.Invalid)
 //                 throw new InvalidOperationException($"The {nameof(BatchGroup)} can not be Disposed because it was not allocated with a valid allocator.");
@@ -332,7 +356,15 @@
 //             m_InstanceCount = null;
 //
 //             return inputDeps;
-         }
+        }
+
+
+        internal unsafe int SetLODRenderDataAndRegister(BatchRendererGroup batchRendererGroup, int lodIndex, GraphicsBufferHandle bufferHandle, in RendererDescription rendererDescription, Mesh mesh, Material[] materials, int subMeshCount)
+        {
+            NativeArray<MetadataValue> metadataValues = m_BatchDescription.AsNativeArray();
+            return m_BatchLODs[lodIndex].SetRenderDataAndRegister(batchRendererGroup, in m_BatchDescription, bufferHandle, metadataValues, in rendererDescription, mesh, materials,
+                subMeshCount);
+        }
 
         #region Get/Set State functions
 
@@ -355,7 +387,7 @@
             bool bSavedActive = (savedActive == (1u << s_ActiveOffset));
             savedState &= ~(1u << s_ActiveOffset);
             m_State[index] = savedState;
-            
+
             if (bSavedActive)
                 (*m_ActiveCount) -= 1;
         }

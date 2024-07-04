@@ -20,11 +20,12 @@ namespace BRGContainer.Runtime
     {
         private readonly ContainerID m_ContainerId;
         internal readonly BatchLODGroupID m_BatchLODGroupID;
-        
+
         [NativeDisableContainerSafetyRestriction]
         private readonly NativeArray<float4> m_Buffer;
-        [NativeDisableUnsafePtrRestriction]
-        private readonly unsafe int* m_InstanceCount;
+
+        [NativeDisableUnsafePtrRestriction] private readonly unsafe int* m_InstanceCount;
+
         [NativeDisableContainerSafetyRestriction]
         private readonly BatchDescription m_Description;
 
@@ -39,16 +40,17 @@ namespace BRGContainer.Runtime
         public uint LODCount => m_LODCount;
 
         // [ExcludeFromBurstCompatTesting("BatchHandle creating is unburstable")]
-        internal unsafe LODGroupBatchHandle(ContainerID containerId, BatchLODGroupID batchLODGroupID, uint lodCount, NativeArray<float4> buffer, int* instanceCount, ref BatchDescription description)
+        internal unsafe LODGroupBatchHandle(ContainerID containerId, BatchLODGroupID batchLODGroupID, uint lodCount, NativeArray<float4> buffer, int* instanceCount,
+            ref BatchDescription description)
         {
             m_ContainerId = containerId;
             m_BatchLODGroupID = batchLODGroupID;
             m_LODCount = lodCount;
-            
+
             m_Buffer = buffer;
             m_InstanceCount = instanceCount;
             m_Description = description; //copy ctor
-            
+
             isCreated = true;
         }
 
@@ -59,10 +61,10 @@ namespace BRGContainer.Runtime
         public unsafe BatchInstanceDataBuffer AsInstanceDataBuffer()
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-            if(!IsAlive)
+            if (!IsAlive)
                 throw new InvalidOperationException("This batch has been destroyed.");
 #endif
-            
+
             return new BatchInstanceDataBuffer(m_Buffer, m_Description.m_MetadataInfoMap, m_Description.m_MetadataValues,
                 m_InstanceCount, m_Description.MaxInstanceCount, m_Description.MaxInstancePerWindow, m_Description.AlignedWindowSize / 16);
         }
@@ -74,15 +76,15 @@ namespace BRGContainer.Runtime
         public unsafe void Upload(int instanceCount)
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-            if(instanceCount < 0 || instanceCount > m_Description.MaxInstanceCount)
+            if (instanceCount < 0 || instanceCount > m_Description.MaxInstanceCount)
                 throw new ArgumentOutOfRangeException($"{nameof(instanceCount)} must be from 0 to {m_Description.MaxInstanceCount}.");
-            
-            if(!IsAlive)
+
+            if (!IsAlive)
                 throw new InvalidOperationException("This batch already has been destroyed.");
 #endif
-            
+
             *m_InstanceCount = instanceCount;
-            
+
             var completeWindows = instanceCount / m_Description.MaxInstancePerWindow;
             if (completeWindows > 0)
             {
@@ -95,7 +97,7 @@ namespace BRGContainer.Runtime
 
             if (itemInLastBatch <= 0)
                 return;
-            
+
             var windowOffsetInFloat4 = lastBatchId * m_Description.AlignedWindowSize / 16;
 
             var offset = 0;
@@ -115,24 +117,24 @@ namespace BRGContainer.Runtime
         public unsafe void SetInstanceCount(int instanceCount)
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-            if(instanceCount < 0 || instanceCount > m_Description.MaxInstanceCount)
+            if (instanceCount < 0 || instanceCount > m_Description.MaxInstanceCount)
                 throw new ArgumentOutOfRangeException($"Instance count {instanceCount} out of range from 0 to {m_Description.MaxInstanceCount} (include).");
 #endif
-            
+
             Interlocked.Exchange(ref *m_InstanceCount, instanceCount);
         }
-        
+
         public unsafe void IncreaseInstanceCount()
         {
             int newInstanceCount = *m_InstanceCount + 1;
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-            if(newInstanceCount < 0 || newInstanceCount > m_Description.MaxInstanceCount)
+            if (newInstanceCount < 0 || newInstanceCount > m_Description.MaxInstanceCount)
                 throw new ArgumentOutOfRangeException($"IncreaseInstanceCount {newInstanceCount} out of range from 0 to {m_Description.MaxInstanceCount} (include).");
 #endif
-            
+
             Interlocked.Exchange(ref *m_InstanceCount, newInstanceCount);
         }
-        
+
         /// <summary>
         /// Upload current data to the GPU side.
         /// </summary>
@@ -148,20 +150,20 @@ namespace BRGContainer.Runtime
         public void Destroy()
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
-            if(!IsAlive)
+            if (!IsAlive)
                 throw new InvalidOperationException("This batch already has been destroyed.");
 #endif
-            
+
             Destroy(m_ContainerId, m_BatchLODGroupID);
         }
-        
+
         // update graphics buffers (GPU buffer)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Upload(ContainerID containerId, BatchLODGroupID batchLODGroupID, NativeArray<float4> data, int nativeBufferStartIndex, int graphicsBufferStartIndex, int count)
         {
             BRGContainer.UploadCallback(containerId, batchLODGroupID, data, nativeBufferStartIndex, graphicsBufferStartIndex, count);
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Destroy(ContainerID containerId, BatchLODGroupID batchLODGroupID)
         {
@@ -173,17 +175,17 @@ namespace BRGContainer.Runtime
         {
             return BRGContainer.IsActive(containerId, batchLODGroupID);
         }
-        
+
         public bool IsInstanceActive(int index)
         {
             return BRGContainer.IsActive(m_ContainerId, m_BatchLODGroupID, index);
         }
-        
+
         public bool IsInstanceActive(int index, uint lod)
         {
             return BRGContainer.IsActive(m_ContainerId, m_BatchLODGroupID, index, lod);
         }
-        
+
         public void SetInstanceInactive(int index) // all lod inactive
         {
             BRGContainer.SetInactive(m_ContainerId, m_BatchLODGroupID, index);
@@ -197,6 +199,16 @@ namespace BRGContainer.Runtime
         public int AddAliveInstance(ref LODGroupBatchHandle hanlde)
         {
             return BRGContainer.AddActiveInstance(m_ContainerId, m_BatchLODGroupID, ref hanlde);
+        }
+
+        public bool IsLODDataInitialized(uint lod)
+        {
+            return BRGContainer.IsLODDataInitialized(m_ContainerId, m_BatchLODGroupID, lod);
+        }
+
+        public bool RegisterLODData(in RendererDescription rendererDescription, uint lod, Mesh mesh, Material[] materials)
+        {
+            return BRGContainer.RegisterLODData(m_ContainerId, m_BatchLODGroupID, in rendererDescription, lod, mesh, materials);
         }
     }
 }

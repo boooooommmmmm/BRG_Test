@@ -291,20 +291,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51ff48189e20db146af1bb7a6d76366d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Count: 100
+  m_BatchCount: 1
+  m_InstanceCount: 1
   m_TestDatas:
   - m_LODDatas:
-    - m_SubmeshDatas:
+    - m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+      m_Materials:
+      - {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
+      - {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
+      m_SubmeshDatas:
       - m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
         m_Material: {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
       - m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
         m_Material: {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
-    - m_SubmeshDatas:
+    - m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+      m_Materials:
+      - {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
+      - {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
+      m_SubmeshDatas:
       - m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
         m_Material: {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
       - m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
         m_Material: {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
-    - m_SubmeshDatas:
+    - m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+      m_Materials:
+      - {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
+      m_SubmeshDatas:
       - m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
         m_Material: {fileID: 2100000, guid: f250e5767b97b8247a3d015744ae6715, type: 2}
   MainCamera: {fileID: 1511458218}

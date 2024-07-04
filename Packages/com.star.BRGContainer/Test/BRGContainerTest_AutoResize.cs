@@ -18,7 +18,8 @@ using UnityEditor;
 
 public class BRGContainerTest_AutoResize : MonoBehaviour
 {
-    public int m_Count;
+    public int m_BatchCount = 1;
+    public int m_InstanceCount;
     public List<BatchWorldObjectData> m_TestDatas;
     public Camera MainCamera;
 
@@ -46,13 +47,12 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
     {
         if (_isAdded == false)
         {
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < m_BatchCount; i++)
                 AddBatch((i % 2) == 0 ? i : -i);
-            // AddBatch();
             _isAdded = true;
         }
 
-        if (aliveItemCount != m_Count)
+        if (aliveItemCount != m_InstanceCount)
         {
             OnItemCountChanged();
         }
@@ -61,11 +61,11 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
 
     private void AddBatch(int offset = 0)
     {
-        aliveItemCount = m_Count;
+        aliveItemCount = m_InstanceCount;
 
-        float3[] _targetPos = new float3[m_Count];
+        float3[] _targetPos = new float3[m_InstanceCount];
 
-        for (int i = 0; i < m_Count; i++)
+        for (int i = 0; i < m_InstanceCount; i++)
         {
             int dis = (i + 1) / 2 * 2;
             int sign = (i & 2) == 0 ? 1 : -1;
@@ -76,29 +76,21 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
         {
             [0] = MaterialProperty.Create<Color>(m_BaseColorPropertyId, true)
         };
-        var batchDescription = new BatchDescription(m_Count, materialProperties, Allocator.Persistent);
+        var batchDescription = new BatchDescription(m_InstanceCount, materialProperties, Allocator.Persistent);
         materialProperties.Dispose();
 
         var rendererDescription = new RendererDescription(ShadowCastingMode.On, true, false, 1, 0, MotionVectorGenerationMode.Camera);
         var testData = m_TestDatas[0];
-        LODGroupBatchHandle lodGroupBatchHandle = m_BRGContainer.AddLODGroup(ref batchDescription, in rendererDescription, ref testData);
+        // LODGroupBatchHandle lodGroupBatchHandle = m_BRGContainer.AddLODGroupWithData(ref batchDescription, in rendererDescription, ref testData);
+        LODGroupBatchHandle lodGroupBatchHandle = m_BRGContainer.AddEmptyLODGroup(ref batchDescription);
         m_LODGroupBatchHandles = lodGroupBatchHandle;
 
-        var dataBuffer = lodGroupBatchHandle.AsInstanceDataBuffer();
-        dataBuffer.SetInstanceCount(m_Count);
+        // var dataBuffer = lodGroupBatchHandle.AsInstanceDataBuffer();
+        // dataBuffer.SetInstanceCount(m_InstanceCount);
 
-        for (var i = 0; i < m_Count; i++)
+        for (var i = 0; i < m_InstanceCount; i++)
         {
-            var currentTransform = transform;
-            var position = _targetPos[i];
-            var rotation = Quaternion.identity;
-
-            dataBuffer.SetTRS(i, position, rotation, Vector3.one);
-            dataBuffer.SetColor(i, m_BaseColorPropertyId, UnityEngine.Random.ColorHSV());
-            
-            int randomLOD = UnityEngine.Random.Range(0, (int)lodGroupBatchHandle.LODCount);
-            m_LODGroupBatchHandles.SetInstanceActive(i, (uint)randomLOD, true);
-
+            AddItem(i, i + 1, false);
             // Debug.LogError("SetAlive: " + i);
         }
         
@@ -107,25 +99,27 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
 
     private void OnItemCountChanged()
     {
-        if (m_Count > aliveItemCount)
+        if (m_InstanceCount > aliveItemCount)
         {
-            AddItem(aliveItemCount, m_Count);
-            aliveItemCount = m_Count;
+            AddItem(aliveItemCount, m_InstanceCount);
+            aliveItemCount = m_InstanceCount;
         }
-        else if (m_Count < aliveItemCount)
+        else if (m_InstanceCount < aliveItemCount)
         {
-            int removeCount = aliveItemCount - m_Count;
-            RemoveItem(removeCount);
-            aliveItemCount -= removeCount;
+            int removeCount = aliveItemCount - m_InstanceCount;
+            
+            aliveItemCount -= RemoveItem(removeCount);
         }
     }
 
     public void ChangeItemCount(int count = 0)
     {
-        m_Count += count;
+        int newCount = m_InstanceCount + count;
+        if (newCount > 0)
+            m_InstanceCount += count;
     }
 
-    private void AddItem(int currentCount, int targetCount)
+    private void AddItem(int currentCount, int targetCount, bool flushBuffer = true)
     {
         int addCount = targetCount - currentCount;
 
@@ -145,17 +139,28 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
             dataBuffer.SetTRS(index, targetPos, rotation, Vector3.one);
             dataBuffer.SetColor(index, m_BaseColorPropertyId, UnityEngine.Random.ColorHSV());
             int randomLOD = UnityEngine.Random.Range(0, (int)m_LODGroupBatchHandles.LODCount);
+
+            if (!m_LODGroupBatchHandles.IsLODDataInitialized((uint)randomLOD))
+            {
+                Mesh mesh = m_TestDatas[0][randomLOD].m_Mesh;
+                Material[] materials = m_TestDatas[0][randomLOD].m_Materials;
+                RendererDescription rendererDescription = new RendererDescription(ShadowCastingMode.On, true, false, 1, 0, MotionVectorGenerationMode.Camera);
+                m_LODGroupBatchHandles.RegisterLODData(in rendererDescription, (uint)randomLOD, mesh, materials);
+            }
+                
             m_LODGroupBatchHandles.SetInstanceActive(index, (uint)randomLOD, true);
         }
 
-        m_LODGroupBatchHandles.Upload();
+        if (flushBuffer)
+            m_LODGroupBatchHandles.Upload();
     }
 
-    private void RemoveItem(int count)
+    private int RemoveItem(int count)
     {
         bool isRandomRemove = true;
 
         int totalCount = m_LODGroupBatchHandles.InstanceCount;
+        int removeCount = 0;
         for (int i = 0; i < count; i++)
         {
             bool removeSuccess = false;
@@ -173,6 +178,8 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
                 }
 
                 removeSuccess = RemoveItemAtIndex(removeIndex);
+                if (removeSuccess)
+                    removeCount++;
 
                 // if all items are inactive
                 maxTryCount++;
@@ -181,6 +188,8 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
                 // UnityEngine.Debug.LogError($"remove: {removeIndex}, status: {removeSuccess}");
             }
         }
+
+        return removeCount;
     }
 
     private bool RemoveItemAtIndex(int index)

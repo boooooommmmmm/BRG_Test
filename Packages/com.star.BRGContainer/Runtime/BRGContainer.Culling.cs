@@ -21,7 +21,7 @@ namespace BRGContainer.Runtime
             return CullingParallel(rendererGroup, cullingContext, cullingOutput, userContext);
         }
 
-        private const bool _forceJobFence = false; //default : false
+        private const bool _forceJobFence = true; //default : false
         private const bool _useMainCameraCulling = true; //default : true
 
         private static float3 commonExtents = new float3(2, 2, 2);

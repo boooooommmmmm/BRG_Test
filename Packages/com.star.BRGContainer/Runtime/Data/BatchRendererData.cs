@@ -18,7 +18,7 @@
         public uint SubMeshIndex;
         public RendererDescription RendererDescription;
         
-        public BatchRendererData(in RendererDescription description, BatchMeshID meshID, BatchMaterialID materialID, uint submeshIndex = 0)
+        public BatchRendererData(in RendererDescription description, in BatchMeshID meshID, in BatchMaterialID materialID, uint submeshIndex = 0)
         {
             MeshID = meshID;
             MaterialID = materialID;

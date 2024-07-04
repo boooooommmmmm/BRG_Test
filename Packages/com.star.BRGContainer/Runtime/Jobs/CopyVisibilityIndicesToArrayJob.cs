@@ -29,10 +29,8 @@
                 ref var batchLOD = ref UnsafeUtility.ArrayElementAsRef<BatchLOD>(batchLODGroup.m_BatchLODs, (int)lodIndex);
                 int visibleCount = batchLOD.VisibleCount;
 
-                if (batchLOD.VisibleCount == 0)
-                {
+                if (!batchLOD.IsInitialied || batchLOD.VisibleCount == 0)
                     continue;
-                }
 
                 for (uint subMeshIndex = 0; subMeshIndex < batchLOD.SubMeshCount; subMeshIndex++)
                 {

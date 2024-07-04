@@ -12,6 +12,7 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -96,12 +97,13 @@ namespace BRGContainer.Runtime
         // }
 
         [BRGMethodThreadUnsafe]
-        public unsafe LODGroupBatchHandle AddLODGroup(ref BatchDescription batchDescription, in RendererDescription rendererDescription, ref BatchWorldObjectData worldObjectData)
+        public unsafe LODGroupBatchHandle AddLODGroupWithData(ref BatchDescription batchDescription, in RendererDescription rendererDescription,
+            ref BatchWorldObjectData worldObjectData)
         {
             GraphicsBuffer graphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, batchDescription.TotalBufferSize);
 
-            GetNewBatchLODGroupID(out BatchLODGroupID batchLODGroupID);
-            BatchLODGroup batchLODGroup = CreateBatchLODGroup(in batchDescription, in rendererDescription, in batchLODGroupID, ref worldObjectData, Allocator.Persistent);
+            BatchLODGroup batchLODGroup = CreateBatchLODGroup(in batchDescription, in rendererDescription, out BatchLODGroupID batchLODGroupID, ref worldObjectData,
+                Allocator.Persistent);
 
             m_TotalBatchCount += batchLODGroup.Register(m_BatchRendererGroup, graphicsBuffer.bufferHandle);
 
@@ -113,6 +115,35 @@ namespace BRGContainer.Runtime
 
             return new LODGroupBatchHandle(m_ContainerId, batchLODGroupID, batchLODGroup.LODCount, batchLODGroup.GetNativeBuffer(), batchLODGroup.m_InstanceCount,
                 ref batchDescription);
+        }
+
+        [BRGMethodThreadUnsafe]
+        public unsafe LODGroupBatchHandle AddEmptyLODGroup(ref BatchDescription batchDescription)
+        {
+            GraphicsBuffer graphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, batchDescription.TotalBufferSize);
+            BatchLODGroup batchLODGroup = CreateEmptyBatchLODGroup(in batchDescription, out BatchLODGroupID batchLODGroupID, Allocator.Persistent);
+
+            // should manually register
+            // m_TotalBatchCount += batchLODGroup.Register(m_BatchRendererGroup, graphicsBuffer.bufferHandle);
+
+            m_GraphicsBuffers.Add(batchLODGroupID, graphicsBuffer);
+            m_LODGroups.Add(batchLODGroupID, batchLODGroup);
+
+            // check need update index data buffer
+            UpdateVisibleIndexDataOffset();
+
+            return new LODGroupBatchHandle(m_ContainerId, batchLODGroupID, batchLODGroup.LODCount, batchLODGroup.GetNativeBuffer(), batchLODGroup.m_InstanceCount,
+                ref batchDescription);
+        }
+
+        public void AddLODData(in BatchLODGroupID batchLODGroupID, int lodIndex, Mesh mesh, Material[] materials, in RendererDescription rendererDescription)
+        {
+            GetBatchLODGroup(in batchLODGroupID, out BatchLODGroup batchLODGroup);
+            GraphicsBufferHandle bufferHandle = GetGraphicBuffer(in batchLODGroupID).bufferHandle;
+            int registerBatchCount = batchLODGroup.SetLODRenderDataAndRegister(m_BatchRendererGroup, lodIndex, bufferHandle, in rendererDescription, mesh, materials, materials.Length);
+            m_TotalBatchCount += registerBatchCount;
+            
+            // sven todo: check batchLODGroup copy ctor, should be all right...
         }
 
 
@@ -129,6 +160,16 @@ namespace BRGContainer.Runtime
         public void GetBatchLODGroup(BatchLODGroupID id, out BatchLODGroup batchLODGroup)
         {
             batchLODGroup = m_LODGroups[id];
+        }
+
+        public void GetBatchLODGroup(in BatchLODGroupID id, out BatchLODGroup batchLODGroup)
+        {
+            batchLODGroup = m_LODGroups[id];
+        }
+
+        public GraphicsBuffer GetGraphicBuffer(in BatchLODGroupID id)
+        {
+            return m_GraphicsBuffers[id];
         }
 
         // return if batchHandle changed
@@ -157,17 +198,18 @@ namespace BRGContainer.Runtime
             GetBatchLODGroup(batchLODGroupID, out BatchLODGroup oldBatchLODGroup);
             BatchDescription newBatchDescription = BatchDescription.CopyWithResize(in oldBatchLODGroup.m_BatchDescription, targetCount);
 
+            // unregister. Need unregister before copy ctor, because 'm_IsRegistered' flag also will be copied.
+            int removeBatchCount = oldBatchLODGroup.Unregister(m_BatchRendererGroup, false);
+            // m_TotalBatchCount -= removeBatchCount;// m_TotalBatchCount should not be changed.
+
             // no need copy graphics buffer data, LODGroupBatchHandle.Upload() will flush all data to graphics buffer
             GraphicsBuffer newGraphicsBuffer = CreateGraphicsBuffer(BatchDescription.IsUBO, newBatchDescription.TotalBufferSize);
             BatchLODGroup newBatchLODGroup = new BatchLODGroup(this, ref oldBatchLODGroup, in newBatchDescription, in batchLODGroupID);
 
             //dispose data
+            oldBatchLODGroup.Dispose();
             m_GraphicsBuffers.Remove(batchLODGroupID);
             m_LODGroups.Remove(batchLODGroupID);
-            int removeBatchCount = oldBatchLODGroup.Unregister(m_BatchRendererGroup, false);
-            // m_TotalBatchCount -= removeBatchCount;// m_TotalBatchCount should not be changed.
-            oldBatchLODGroup.Dispose();
-
             if (m_GraphicsBuffers.Remove(batchLODGroupID, out var graphicsBuffer))
                 graphicsBuffer.Dispose();
 
@@ -345,10 +387,6 @@ namespace BRGContainer.Runtime
             if (info == EGetNextActiveIndexInfo.None)
             {
             }
-            // else
-            // {
-            //     throw new Exception("Not support now");
-            // }
             else if (info == EGetNextActiveIndexInfo.NeedExtentInstanceCount)
             {
                 bool batchHandleChanged = container.ExtendInstanceCount(ref lodGroupBatchHandle, 1);
@@ -376,6 +414,28 @@ namespace BRGContainer.Runtime
             if (!container.m_LODGroups.TryGetValue(batchLODGroupID, out batchLODGroup))
                 return false;
 
+            return true;
+        }
+
+        internal static bool IsLODDataInitialized(ContainerID containerID, BatchLODGroupID batchLODGroupID, uint lodIndex)
+        {
+            if (GetBatchLODGroup(containerID, batchLODGroupID, out BatchLODGroup batchLODGroup))
+            {
+                return batchLODGroup[lodIndex].IsInitialied;
+            }
+
+            return false;
+        }
+
+        internal static bool RegisterLODData(ContainerID containerID, BatchLODGroupID batchLODGroupID, in RendererDescription rendererDescription, uint lodIndex, Mesh mesh, Material[] materials)
+        {
+            if (!m_Containers.TryGetValue(containerID, out BRGContainer container))
+                return false;
+
+            if (!container.m_LODGroups.TryGetValue(batchLODGroupID, out var batchLODGroup))
+                return false;
+
+            container.AddLODData(in batchLODGroupID, (int)lodIndex, mesh, materials, in rendererDescription);
             return true;
         }
 

@@ -32,21 +32,52 @@ namespace BRGContainer.Runtime
         public readonly int AlignedWindowSize;
         private readonly int m_BufferLength;
         private Allocator m_Allocator;
-        private readonly uint m_SubmeshIndex;
+        private /*readonly*/ uint m_SubMeshIndex;
+        private bool m_IsInitialized;
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+        private bool m_IsRegistered;
+#endif
         
         public readonly unsafe BatchID this[int index] => m_Batches[index];
+        public bool IsInitialized => m_IsInitialized;
         
-        public unsafe BatchGroup(in BatchDescription batchDescription, in RendererDescription rendererDescription, in BatchRendererData rendererData, Allocator allocator)
+        public unsafe BatchGroup(in BatchDescription batchDescription, in BatchRendererData rendererData, Allocator allocator)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            m_IsRegistered = false;
+#endif
+            m_IsInitialized = true;
             BatchRendererData = rendererData;
             m_Allocator = allocator;
-            m_SubmeshIndex = rendererData.SubMeshIndex;
+            m_SubMeshIndex = rendererData.SubMeshIndex;
 
             m_BufferLength = batchDescription.TotalBufferSize / 16;
             WindowCount = batchDescription.WindowCount;
             WindowSize = batchDescription.WindowSize;
             AlignedWindowSize = batchDescription.AlignedWindowSize;
 
+            // sven todo: check size
+            m_Batches = (BatchID*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchID * m_BufferLength,
+                UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
+        }
+        
+        // create an empty BatchLOD Group, without register mesh and material
+        public unsafe BatchGroup(in BatchDescription batchDescription, Allocator allocator)
+        {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            m_IsRegistered = false;
+#endif
+            m_IsInitialized = false;
+            BatchRendererData = default;
+            m_Allocator = allocator;
+            m_SubMeshIndex = BRGConstants.DefaultSubMeshIndex;
+
+            m_BufferLength = batchDescription.TotalBufferSize / 16;
+            WindowCount = batchDescription.WindowCount;
+            WindowSize = batchDescription.WindowSize;
+            AlignedWindowSize = batchDescription.AlignedWindowSize;
+
+            // sven todo: check size
             m_Batches = (BatchID*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchID * m_BufferLength,
                 UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
         }
@@ -54,21 +85,32 @@ namespace BRGContainer.Runtime
         // copy ctor for resizing batchGroup
         public unsafe BatchGroup(in BatchGroup oldBatchGroup, in BatchDescription newBatchDescription)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            m_IsRegistered = oldBatchGroup.m_IsRegistered;
+#endif
+            m_IsInitialized = oldBatchGroup.m_IsInitialized;
             BatchRendererData = oldBatchGroup.BatchRendererData;
             m_Allocator = oldBatchGroup.m_Allocator;
-            m_SubmeshIndex = oldBatchGroup.BatchRendererData.SubMeshIndex;
+            m_SubMeshIndex = oldBatchGroup.BatchRendererData.SubMeshIndex;
 
             m_BufferLength = newBatchDescription.TotalBufferSize / 16;
             WindowCount = newBatchDescription.WindowCount;
             WindowSize = newBatchDescription.WindowSize;
             AlignedWindowSize = newBatchDescription.AlignedWindowSize;
 
+            // sven todo: check size
             m_Batches = (BatchID*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchID * m_BufferLength, UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
         }
 
         [BurstDiscard]
         public unsafe int Register([NotNull] BatchRendererGroup batchRendererGroup, GraphicsBufferHandle bufferHandle, NativeArray<MetadataValue> metadataValues)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            if (m_IsRegistered)
+                throw new Exception("Batch group is already registered to BRG!");
+            m_IsRegistered = true;
+#endif
+            
             int registBatchCount = 0;
             for (var i = 0; i < WindowCount; i++)
             {
@@ -80,10 +122,15 @@ namespace BRGContainer.Runtime
 
             return registBatchCount;
         }
-        
+
         [BurstDiscard]
         public unsafe int Unregister(BatchRendererGroup batchRendererGroup, bool needUnregisterMeshAndMat) // default true
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            if (!m_IsRegistered)
+                throw new Exception("Batch group is already unregistered to BRG!");
+            m_IsRegistered = false;
+#endif
             int removeBatchCount = 0;
             for (var i = 0; i < WindowCount; i++)
             {
@@ -101,6 +148,19 @@ namespace BRGContainer.Runtime
             }
 
             return removeBatchCount;
+        }
+        
+        [BurstDiscard]
+        public unsafe int SetRenderDataAndRegister(BatchRendererGroup batchRendererGroup, GraphicsBufferHandle bufferHandle, NativeArray<MetadataValue> metadataValues, in RendererDescription rendererDescription, Mesh mesh, Material material, uint subMeshIndex)
+        {
+            m_SubMeshIndex = subMeshIndex;
+            BatchMeshID meshID = batchRendererGroup.RegisterMesh(mesh);
+            BatchMaterialID materialID = batchRendererGroup.RegisterMaterial(material);
+            BatchRendererData = new BatchRendererData(in rendererDescription, in meshID, in materialID, subMeshIndex);
+            
+            m_IsInitialized = true;
+
+            return Register(batchRendererGroup, bufferHandle, metadataValues);
         }
         
         public unsafe void Dispose()

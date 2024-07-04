@@ -8,6 +8,8 @@ namespace BRGContainer.Runtime
     {
         internal static readonly uint MaxLODCount = 3u;
         internal static readonly int DefaultVisibleInstanceIndexCount = 2;
+        internal static readonly int DefaultSubMeshCount = 99999; // wait for initialize.
+        internal static readonly uint DefaultSubMeshIndex = 99999u; // wait for initialize.
         
         internal static readonly int SizeOfBool = UnsafeUtility.SizeOf<bool>();
         internal static readonly int SizeOfInt = UnsafeUtility.SizeOf<int>();

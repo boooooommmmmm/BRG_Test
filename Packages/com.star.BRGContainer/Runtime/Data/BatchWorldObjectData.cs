@@ -26,6 +26,8 @@ namespace BRGContainer.Runtime
     public struct BatchWorldObjectLODData
     {
         public readonly uint LODIndex;
+        public Mesh m_Mesh;
+        public Material[] m_Materials;
         public List<BatchWorldObjectSubMeshData> m_SubmeshDatas;
         public int SubmeshCount => m_SubmeshDatas.Count;
         public BatchWorldObjectSubMeshData this[int index] =>  m_SubmeshDatas[index];

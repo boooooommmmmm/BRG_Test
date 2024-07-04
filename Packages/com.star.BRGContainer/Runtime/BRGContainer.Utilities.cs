@@ -23,7 +23,7 @@ namespace BRGContainer.Runtime
         {
             var meshID = m_BatchRendererGroup.RegisterMesh(mesh);
             var materialID = m_BatchRendererGroup.RegisterMaterial(material);
-            var batchRendererData = new BatchRendererData(description, meshID, materialID, submeshIndex);
+            var batchRendererData = new BatchRendererData(in description, in meshID, in materialID, submeshIndex);
 
             return batchRendererData;
         }
@@ -34,10 +34,24 @@ namespace BRGContainer.Runtime
             batchLODGroupID = new BatchLODGroupID(Interlocked.Increment(ref m_BatchLODGroupGlobalID));
         }
 
-        private unsafe BatchLODGroup CreateBatchLODGroup(in BatchDescription batchDescription, in RendererDescription rendererDescription, in BatchLODGroupID batchLODGroupID, ref BatchWorldObjectData worldObjectData, Allocator allocator)
+        private unsafe BatchLODGroup CreateBatchLODGroup(in BatchDescription batchDescription, in RendererDescription rendererDescription, out BatchLODGroupID batchLODGroupID, ref BatchWorldObjectData worldObjectData, Allocator allocator)
         {
+            GetNewBatchLODGroupID(out BatchLODGroupID _batchLODGroupID);
+            batchLODGroupID = _batchLODGroupID; // copy ctor
+            
             RegisterMeshAndMaterialToBRG(ref worldObjectData);
-            return new BatchLODGroup(this, in batchDescription, in rendererDescription, in batchLODGroupID, in worldObjectData, allocator);
+            return new BatchLODGroup(this, in batchDescription, in rendererDescription, in _batchLODGroupID, in worldObjectData, allocator, false);
+        }
+        
+        // create an empty BatchLOD Group, without register mesh and material
+        private unsafe BatchLODGroup CreateEmptyBatchLODGroup(in BatchDescription batchDescription, out BatchLODGroupID batchLODGroupID, Allocator allocator)
+        {
+            GetNewBatchLODGroupID(out BatchLODGroupID _batchLODGroupID);
+            batchLODGroupID = _batchLODGroupID; // copy ctor
+            
+            BatchWorldObjectData worldObjectData = default;
+            RendererDescription rendererDescription = default;
+            return new BatchLODGroup(this, in batchDescription, in rendererDescription, in _batchLODGroupID, in worldObjectData, allocator, true);
         }
 
         private void RegisterMeshAndMaterialToBRG(ref BatchWorldObjectData worldObjectData)

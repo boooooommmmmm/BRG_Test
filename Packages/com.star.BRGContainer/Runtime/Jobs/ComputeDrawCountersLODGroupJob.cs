@@ -36,10 +36,8 @@
                 ref var batchLOD = ref UnsafeUtility.ArrayElementAsRef<BatchLOD>(batchLODGroup.m_BatchLODs, (int)lodIndex);
                 int visibleCountLOD = batchLOD.VisibleCount;
                 
-                if (visibleCountLOD == 0) // there is no any visible instances for this LOD
-                {
+                if (!batchLOD.IsInitialied || batchLOD.VisibleCount == 0) // there is no any visible instances for this LOD
                     continue;
-                }
 
                 int subMeshCount = (int)batchLOD.SubMeshCount;
                 validBatchCount = math.select(validBatchCount, validBatchCount + subMeshCount, visibleCountLOD > 0);
@@ -60,10 +58,8 @@
                 int visibleCountLOD = batchLOD.VisibleCount;
                 int subMeshCount = (int)batchLOD.SubMeshCount;
                 
-                if (visibleCountLOD == 0) // there is no any visible instances for this LOD
-                {
+                if (!batchLOD.IsInitialied || batchLOD.VisibleCount == 0) // there is no any visible instances for this LOD
                     continue;
-                }
 
                 batchLOD.m_DrawBatchIndex = batchDrawOffset;
                 batchDrawOffset += subMeshCount;

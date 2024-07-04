@@ -20,21 +20,18 @@
         public unsafe void Execute(int index)
         {
             ref var batchLODGroup = ref UnsafeUtility.ArrayElementAsRef<BatchLODGroup>(BatchLODGroups.GetUnsafePtr(), index);
-
-            var rendererDescription = batchLODGroup.RendererDescription;
-
+            
             for (uint lodIndex = 0; lodIndex < batchLODGroup.LODCount; lodIndex++)
             {
                 ref var batchLOD = ref UnsafeUtility.ArrayElementAsRef<BatchLOD>(batchLODGroup.m_BatchLODs, (int)lodIndex);
 
-                if (batchLOD.VisibleCount == 0)
-                {
+                if (!batchLOD.IsInitialied || batchLOD.VisibleCount == 0)
                     continue;
-                }
 
                 int drawRangeBeginIndex = batchLOD.m_DrawBatchIndex;
                 for (uint subMeshIndex = 0; subMeshIndex < batchLOD.SubMeshCount; subMeshIndex++)
                 {
+                    var rendererDescription = batchLOD.RendererDescription;
                     var drawRange = new BatchDrawRange
                     {
                         drawCommandsBegin = (uint) (drawRangeBeginIndex + (int)subMeshIndex),
