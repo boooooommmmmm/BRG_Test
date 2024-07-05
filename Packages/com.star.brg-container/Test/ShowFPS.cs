@@ -1,3 +1,4 @@
+#if !STAR_BRG_CONTAINER
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -29,3 +30,4 @@ public class ShowFPS : MonoBehaviour
         }
     }
 }
+#endif

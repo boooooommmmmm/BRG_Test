@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !STAR_BRG_CONTAINER
+using System;
 using System.Runtime.CompilerServices;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
@@ -113,3 +114,4 @@ namespace BRGContainer.Test
         }
     }
 }
+#endif

@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !STAR_BRG_CONTAINER
+using System;
 using UnityEditor;
 using UnityEngine;
 
@@ -49,3 +50,4 @@ namespace BRGContainer.Test
         }
     }
 }
+#endif

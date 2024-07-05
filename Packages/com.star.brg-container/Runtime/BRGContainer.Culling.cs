@@ -17,11 +17,12 @@ namespace BRGContainer.Runtime
         private unsafe JobHandle CullingCallback(BatchRendererGroup rendererGroup, BatchCullingContext cullingContext,
             BatchCullingOutput cullingOutput, IntPtr userContext)
         {
+	        // return new JobHandle();
             // return CullingMainThread(rendererGroup, cullingContext, cullingOutput, userContext);
             return CullingParallel(rendererGroup, cullingContext, cullingOutput, userContext);
         }
 
-        private const bool _forceJobFence = true; //default : false
+        private const bool _forceJobFence = false; //default : false
         private const bool _useMainCameraCulling = true; //default : true
 
         private static float3 commonExtents = new float3(2, 2, 2);
@@ -51,6 +52,18 @@ namespace BRGContainer.Runtime
                 cullingPlanes.Dispose();
                 cullingPlanes = cullingContext.cullingPlanes;
             }
+            
+            JobHandle defaultHandle = default;
+            
+            // setup data
+            JobHandle setupDataHandle = default;
+            var setupDataJob = new SetupDataJob()
+            {
+                BatchLODGroups = batchLODGroups,
+            };
+            var setupDataJobHandle = setupDataJob.ScheduleByRef(batchLODGroups.Length, 64, defaultHandle);
+            if (_forceJobFence) setupDataJobHandle.Complete();
+            
 
             var drawInstanceIndexData = m_VisibleInstanceIndexData;
             
@@ -66,20 +79,9 @@ namespace BRGContainer.Runtime
                 // windowCount = 1; // assume window count is always 1.
                 var maxInstanceCountPerBatch = batchLODGroup.GetInstanceCountPerWindow(0);
                 
-                JobHandle batchHandle = default;
-                
                 uint* statePtr = batchLODGroup.StatePtr;
                 
-                // setup data
-                var setupDataJob = new SetupDataJob()
-                {
-                    BatchGroupIndex = batchLODGroupIndex,
-                    BatchLODGroup = batchLODGroup,
-                };
-                var setupDataJobHandle = setupDataJob.ScheduleByRef(maxInstanceCountPerBatch, 64, batchHandle);
-                if (_forceJobFence) setupDataJobHandle.Complete();
-                
-                // [culling] active + frustum culling, add visible count for active lod levle.
+                // [culling] active + frustum culling, add visible count for active lod level.
                 var cullingBatchInstancesJob = new CullingBatchInstancesJob
                 {
                     CullingPlanes = cullingPlanes,
@@ -91,7 +93,7 @@ namespace BRGContainer.Runtime
                     DataOffset = 0,
                     BatchLODGroupIndex = batchLODGroupIndex,
                 };
-                batchHandle = cullingBatchInstancesJob.ScheduleByRef(maxInstanceCountPerBatch, 64, setupDataJobHandle);
+                JobHandle batchHandle = cullingBatchInstancesJob.ScheduleByRef(maxInstanceCountPerBatch, 64, setupDataJobHandle);
                 if (_forceJobFence) batchHandle.Complete();
                 
                 // offset += windowCount;
@@ -148,7 +150,7 @@ namespace BRGContainer.Runtime
             var copyVisibilityIndicesToArrayJob = new CopyVisibilityIndicesToArrayJob
             {
                 BatchLODGroups = batchLODGroups,
-                DrawInstanceIndexData = drawInstanceIndexData,
+                DrawInstanceIndexData = (int*)drawInstanceIndexData.GetUnsafePtr(),
                 OutputDrawCommands = drawCommands
             };
             

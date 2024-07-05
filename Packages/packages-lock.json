@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "com.star.brgcontainer": {
-      "version": "file:com.star.BRGContainer",
+    "com.star.brg-container": {
+      "version": "file:com.star.brg-container",
       "depth": 0,
       "source": "embedded",
       "dependencies": {}

@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !STAR_BRG_CONTAINER
+using System;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
@@ -151,3 +152,4 @@ namespace BRGContainer.Test
         }
     }
 }
+#endif

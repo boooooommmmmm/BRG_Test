@@ -379,15 +379,16 @@ namespace BRGContainer.Runtime
             }
         }
 
-        internal static int AddActiveInstance(ContainerID containerID, BatchLODGroupID batchLODGroupID, ref LODGroupBatchHandle lodGroupBatchHandle)
+        internal static Tuple<int, bool>  AddActiveInstance(ContainerID containerID, BatchLODGroupID batchLODGroupID, ref LODGroupBatchHandle lodGroupBatchHandle)
         {
+	        bool batchHandleChanged = false;
             if (!m_Containers.TryGetValue(containerID, out BRGContainer container))
             {
-                return -1;
+	            return new Tuple<int, bool>(-1 ,batchHandleChanged);
             }
 
             if (!container.m_LODGroups.TryGetValue(batchLODGroupID, out BatchLODGroup batchLODGroup))
-                return -1;
+	            return new Tuple<int, bool>(-1 ,batchHandleChanged);
 
             (int index, EGetNextActiveIndexInfo info) = batchLODGroup.GetNextActiveIndex();
 
@@ -396,18 +397,18 @@ namespace BRGContainer.Runtime
             }
             else if (info == EGetNextActiveIndexInfo.NeedExtentInstanceCount)
             {
-                bool batchHandleChanged = container.ExtendInstanceCount(ref lodGroupBatchHandle, 1);
+                batchHandleChanged = container.ExtendInstanceCount(ref lodGroupBatchHandle, 1);
                 lodGroupBatchHandle.IncreaseInstanceCount();
             }
             else if (info == EGetNextActiveIndexInfo.NeedResize)
             {
-                bool batchHandleChanged = container.ExtendInstanceCount(ref lodGroupBatchHandle, 1);
+                batchHandleChanged = container.ExtendInstanceCount(ref lodGroupBatchHandle, 1);
                 batchLODGroup = container.GetBatchLODGroup(lodGroupBatchHandle.m_BatchLODGroupID);
                 lodGroupBatchHandle.IncreaseInstanceCount();
                 (index, info) = batchLODGroup.GetNextActiveIndex();
             }
-
-            return index;
+            
+            return new Tuple<int, bool>(index ,batchHandleChanged);;
         }
 
         private static bool GetBatchLODGroup(ContainerID containerID, BatchLODGroupID batchLODGroupID, out BatchLODGroup batchLODGroup)

@@ -55,10 +55,8 @@ namespace BRGContainer.Runtime
             WindowCount = batchDescription.WindowCount;
             WindowSize = batchDescription.WindowSize;
             AlignedWindowSize = batchDescription.AlignedWindowSize;
-
-            // sven todo: check size
-            m_Batches = (BatchID*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchID * m_BufferLength,
-                UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
+            
+            m_Batches = (BatchID*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchID * WindowCount, UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
         }
         
         // create an empty BatchLOD Group, without register mesh and material
@@ -77,9 +75,7 @@ namespace BRGContainer.Runtime
             WindowSize = batchDescription.WindowSize;
             AlignedWindowSize = batchDescription.AlignedWindowSize;
 
-            // sven todo: check size
-            m_Batches = (BatchID*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchID * m_BufferLength,
-                UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
+            m_Batches = (BatchID*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchID * WindowCount, UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
         }
         
         // copy ctor for resizing batchGroup
@@ -98,8 +94,7 @@ namespace BRGContainer.Runtime
             WindowSize = newBatchDescription.WindowSize;
             AlignedWindowSize = newBatchDescription.AlignedWindowSize;
 
-            // sven todo: check size
-            m_Batches = (BatchID*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchID * m_BufferLength, UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
+            m_Batches = (BatchID*)UnsafeUtility.Malloc(BRGConstants.SizeOfBatchID * WindowCount, UnsafeUtility.AlignOf<BatchID>(), m_Allocator);
         }
 
         [BurstDiscard]

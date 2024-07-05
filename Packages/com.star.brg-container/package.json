@@ -1,9 +1,12 @@
 {
-  "name": "com.star.brgcontainer",
+  "name": "com.star.brg-container",
   "description": "brg container",
   "version": "0.0.1",
   "displayName": "BRG Container",
   "dependencies": {
+  },
+  "author": {
+    "name": "Star"
   },
   "samples": [
     {

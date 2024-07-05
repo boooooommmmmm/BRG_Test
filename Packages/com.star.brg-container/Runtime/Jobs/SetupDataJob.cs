@@ -16,13 +16,14 @@
         [ReadOnly] public int BatchGroupIndex;
 
         [WriteOnly, NativeDisableContainerSafetyRestriction]
-        public BatchLODGroup BatchLODGroup;
+        public NativeArray<BatchLODGroup> BatchLODGroups;
 
         public unsafe void Execute(int index)
         {
-            for (int lodIndex = 0; lodIndex < (int)BatchLODGroup.LODCount; lodIndex++)
+            ref var batchLODGroup = ref UnsafeUtility.ArrayElementAsRef<BatchLODGroup>(BatchLODGroups.GetUnsafePtr(), index);
+            for (int lodIndex = 0; lodIndex < (int)batchLODGroup.LODCount; lodIndex++)
             {
-                BatchLOD* batchLOD = BatchLODGroup.GetByRef(lodIndex);
+                BatchLOD* batchLOD = batchLODGroup.GetByRef(lodIndex);
                 Interlocked.Exchange(ref UnsafeUtility.AsRef<int>((*batchLOD).visibleCount) , 0);
                 // no need clear visible array, will be overwrote in culling phase.
             }

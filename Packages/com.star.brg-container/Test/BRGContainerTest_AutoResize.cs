@@ -90,7 +90,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
 
         for (var i = 0; i < m_InstanceCount; i++)
         {
-            AddItem(i, i + 1, false);
+            AddItem(i, i + 1, offset, false);
             // Debug.LogError("SetAlive: " + i);
         }
         
@@ -101,7 +101,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
     {
         if (m_InstanceCount > aliveItemCount)
         {
-            AddItem(aliveItemCount, m_InstanceCount);
+            AddItem(aliveItemCount, m_InstanceCount, 0);
             aliveItemCount = m_InstanceCount;
         }
         else if (m_InstanceCount < aliveItemCount)
@@ -119,20 +119,22 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
             m_InstanceCount += count;
     }
 
-    private void AddItem(int currentCount, int targetCount, bool flushBuffer = true)
+    private void AddItem(int currentCount, int targetCount, int offset, bool flushBuffer = true)
     {
         int addCount = targetCount - currentCount;
 
         for (int i = 1; i <= addCount; i++)
         {
-            int index = m_LODGroupBatchHandles.AddAliveInstance(ref m_LODGroupBatchHandles);
+            Tuple<int, bool> addRes = m_LODGroupBatchHandles.AddAliveInstance(ref m_LODGroupBatchHandles);
+            int index = addRes.Item1;
+            bool lodGroupBatchHandleChanged = addRes.Item2;
 
             float3 targetPos = float3.zero;
             var rotation = Quaternion.identity;
 
             int dis = (index + 1) / 2 * 2;
             int sign = (index & 2) == 0 ? 1 : -1;
-            targetPos = new float3(0, 0, dis * sign);
+            targetPos = new float3(0, offset, dis * sign);
 
             var dataBuffer = m_LODGroupBatchHandles.AsInstanceDataBuffer();
 

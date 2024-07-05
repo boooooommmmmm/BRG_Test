@@ -1,3 +1,4 @@
+#if !STAR_BRG_CONTAINER
 using System;
 using System.Collections.Generic;
 using BRGContainer.Runtime;
@@ -247,3 +248,5 @@ namespace BRGContainer.Test
         }
     }
 }
+
+#endif
