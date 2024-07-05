@@ -157,6 +157,8 @@ namespace BRGContainer.Runtime
             Destroy(m_ContainerId, m_BatchLODGroupID);
         }
 
+        #region Container packed APIs
+        
         // update graphics buffers (GPU buffer)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Upload(ContainerID containerId, BatchLODGroupID batchLODGroupID, NativeArray<float4> data, int nativeBufferStartIndex, int graphicsBufferStartIndex, int count)
@@ -210,5 +212,6 @@ namespace BRGContainer.Runtime
         {
             return BRGContainer.RegisterLODData(m_ContainerId, m_BatchLODGroupID, in rendererDescription, lod, mesh, materials);
         }
+        #endregion
     }
 }
