@@ -47,6 +47,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
     {
         if (_isAdded == false)
         {
+            LoadTest();
             for (int i = 0; i < m_BatchCount; i++)
                 AddBatch((i % 2) == 0 ? i : -i);
             _isAdded = true;
@@ -145,6 +146,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
             if (!m_LODGroupBatchHandles.IsLODDataInitialized((uint)randomLOD))
             {
                 Mesh mesh = m_TestDatas[0][randomLOD].m_Mesh;
+                // Mesh mesh = testMesh;
                 Material[] materials = m_TestDatas[0][randomLOD].m_Materials;
                 RendererDescription rendererDescription = new RendererDescription(ShadowCastingMode.On, true, false, 1, 0, MotionVectorGenerationMode.Camera);
                 m_LODGroupBatchHandles.RegisterLODData(in rendererDescription, (uint)randomLOD, mesh, materials);
@@ -203,6 +205,19 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
         return true;
     }
 
+
+    private Mesh testMesh;
+    public void LoadTest()
+    {
+        testMesh = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Mesh/TestMesh.mesh");
+    }
+
+    public void UnloadTest()
+    {
+        DestroyImmediate(testMesh, true);
+        testMesh = null;
+    }
+
     private void OnDestroy()
     {
         try
@@ -234,6 +249,11 @@ public class BRGContainerTest_AutoResize_Editor : Editor
             testScript.ChangeItemCount(1);
 
         GUILayout.EndHorizontal();
+        
+        if (GUILayout.Button("unload test"))
+            testScript.UnloadTest();
+        if (GUILayout.Button("load test"))
+            testScript.LoadTest();
     }
 }
 #endif
