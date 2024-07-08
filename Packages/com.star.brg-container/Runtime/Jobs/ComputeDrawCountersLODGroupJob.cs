@@ -41,7 +41,8 @@
 
                 int subMeshCount = (int)batchLOD.SubMeshCount;
                 validBatchCount = math.select(validBatchCount, validBatchCount + subMeshCount, visibleCountLOD > 0);
-                visibleCount += (visibleCountLOD * subMeshCount);
+                // visibleCount += (visibleCountLOD * subMeshCount);
+                visibleCount += (visibleCountLOD * 1); // visible count for each lod, subMesh shares visible index buffer
                 // break;
             }
 

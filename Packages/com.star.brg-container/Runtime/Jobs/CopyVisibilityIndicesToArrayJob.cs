@@ -16,8 +16,9 @@
         public NativeArray<BatchLODGroup> BatchLODGroups;
 
         // [ReadOnly] public NativeArray<BatchGroupDrawRange> DrawRangesData;
-        
-        [ReadOnly, NativeDisableUnsafePtrRestriction] public unsafe int* DrawInstanceIndexData;
+
+        [ReadOnly, NativeDisableUnsafePtrRestriction]
+        public unsafe int* DrawInstanceIndexData;
 
         [NativeDisableUnsafePtrRestriction] public unsafe BatchCullingOutputDrawCommands* OutputDrawCommands;
 
@@ -38,6 +39,7 @@
                     int visibleIndexOffset = batchLOD.m_VisibleInstanceIndexStartIndex;
                     int targetVisibleIndexOffset = batchLOD.m_VisibleInstanceIndexStartIndex ;
                     
+                    // IntPtr is different with int*, need calculate pointer size
                     UnsafeUtility.MemCpy((void*)((IntPtr)OutputDrawCommands->visibleInstances + (targetVisibleIndexOffset) * UnsafeUtility.SizeOf<int>()), (void*)((IntPtr)DrawInstanceIndexData + visibleIndexOffset * UnsafeUtility.SizeOf<int>()), visibleCount * UnsafeUtility.SizeOf<int>());
                     
                     //only need copy once for each LOD
