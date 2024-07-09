@@ -198,6 +198,11 @@ namespace BRGContainer.Runtime
             BRGContainer.SetActive(m_ContainerId, m_BatchLODGroupID, index, lod, active);
         }
 
+        public void SetLOD(int index, uint lod)
+        {
+            BRGContainer.SetLOD(m_ContainerId, m_BatchLODGroupID, index, lod);
+        }
+
         public Tuple<int, bool> AddAliveInstance(ref LODGroupBatchHandle hanlde)
         {
             return BRGContainer.AddActiveInstance(m_ContainerId, m_BatchLODGroupID, ref hanlde);

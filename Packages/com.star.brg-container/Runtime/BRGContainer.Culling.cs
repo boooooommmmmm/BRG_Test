@@ -102,11 +102,8 @@ namespace BRGContainer.Runtime
             
             var cullingHandle = JobHandleUnsafeUtility.CombineDependencies(batchJobHandles, batchLODGroups.Length);
             if (_forceJobFence) cullingHandle.Complete();
-
-            // return cullingHandle;
             
             var drawCounters = new NativeArray<int>(3, Allocator.TempJob);
-            // var drawRangeData = new NativeArray<BatchGroupDrawRange>(batchLODGroups.Length, Allocator.TempJob);
 
             var computeDrawCountersJob = new ComputeDrawCountersLODGroupJob()
             {
@@ -157,11 +154,9 @@ namespace BRGContainer.Runtime
             var resultHandle = copyVisibilityIndicesToArrayJob.ScheduleParallel(batchLODGroups.Length, 32, createDrawCommandsHandle);
             if (_forceJobFence) resultHandle.Complete();
             
-            // resultHandle = JobHandle.CombineDependencies(/*drawRangeData.Dispose(resultHandle),*/ batchLODGroups.Dispose(resultHandle), drawInstanceIndexData.Dispose(resultHandle));
             resultHandle = batchLODGroups.Dispose(resultHandle);
             resultHandle = cullingPlanes.Dispose(resultHandle);
             if (_forceJobFence) resultHandle.Complete();
-            
             
             return resultHandle;
         }

@@ -376,6 +376,21 @@
             return lod;
         }
 
+        public unsafe void SetLOD(int index, uint lod)
+        {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            if (index < 0 || index > InstanceCount)
+                throw new ArgumentOutOfRangeException($"SetActive index {index} out of range from 0 to {InstanceCount} (include).");
+#endif
+            uint savedState = m_State[index];
+            
+            //change active lod
+            uint stateWithoutLOD = (savedState & ~s_bLODMask);
+            savedState = (stateWithoutLOD | (uint)(lod << s_LODOffset));
+
+            m_State[index] = savedState;
+        }
+
         public unsafe void SetInactive(int index)
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS

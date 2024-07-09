@@ -205,6 +205,14 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
         return true;
     }
 
+    public void ChangeLOD()
+    {
+        int totalCount = m_LODGroupBatchHandles.InstanceCount;
+        int changeIndex = UnityEngine.Random.Range(0, totalCount);
+        int randomLOD = UnityEngine.Random.Range(0, (int)m_LODGroupBatchHandles.LODCount);
+        m_LODGroupBatchHandles.SetLOD(changeIndex, (uint)randomLOD);
+    }
+
 
     private Mesh testMesh;
     public void LoadTest()
@@ -249,7 +257,9 @@ public class BRGContainerTest_AutoResize_Editor : Editor
             testScript.ChangeItemCount(1);
 
         GUILayout.EndHorizontal();
-        
+
+        if (GUILayout.Button("change lod test"))
+            testScript.ChangeLOD();
         if (GUILayout.Button("unload test"))
             testScript.UnloadTest();
         if (GUILayout.Button("load test"))

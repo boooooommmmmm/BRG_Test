@@ -45,6 +45,9 @@
                 visibleCount += (visibleCountLOD * 1); // visible count for each lod, subMesh shares visible index buffer
                 // break;
             }
+            
+            if (visibleCount == 0)
+                return;
 
             Interlocked.Add(ref visibleCountRef, visibleCount);
             Interlocked.Add(ref drawRangesCountRef, validBatchCount);

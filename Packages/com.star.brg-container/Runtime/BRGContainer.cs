@@ -378,6 +378,14 @@ namespace BRGContainer.Runtime
                 batchLODGroup.SetActive(index, lod, active);
             }
         }
+        
+        internal static void SetLOD(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index, uint lod)
+        {
+            if (GetBatchLODGroup(containerID, batchLODGroupID, out BatchLODGroup batchLODGroup))
+            {
+                batchLODGroup.SetLOD(index, lod);
+            }
+        }
 
         internal static Tuple<int, bool>  AddActiveInstance(ContainerID containerID, BatchLODGroupID batchLODGroupID, ref LODGroupBatchHandle lodGroupBatchHandle)
         {
