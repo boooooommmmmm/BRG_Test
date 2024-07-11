@@ -368,6 +368,21 @@
 
         #region Get/Set State functions
 
+        public unsafe void SetAABB(int index, HISMAABB aabb)
+        {
+            m_AABBs[index] = aabb;
+        }
+
+        public unsafe HISMAABB GetAABB(int index)
+        {
+            return m_AABBs[index];
+        }
+
+        public unsafe HISMAABB* GetAABBPtr(int index)
+        {
+            return m_AABBs + index;
+        }
+
         public unsafe uint GetCurrentLOD(int index)
         {
             uint savedState = m_State[index];

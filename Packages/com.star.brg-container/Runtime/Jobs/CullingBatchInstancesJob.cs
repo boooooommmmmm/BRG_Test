@@ -22,7 +22,7 @@ namespace BRGContainer.Runtime
         public BatchLODGroup BatchLODGroup;
 
         [ReadOnly] public int BatchLODGroupIndex;
-        [ReadOnly] public float3 Extents;
+        // [ReadOnly] public float3 Extents;
         
         [WriteOnly, NativeDisableUnsafePtrRestriction] public unsafe uint* StatePtr;
         
@@ -48,6 +48,9 @@ namespace BRGContainer.Runtime
             
             PackedMatrix matrix = UnsafeUtility.ArrayElementAsRef<PackedMatrix>(BatchLODGroup.DataBuffer, index);
             float3 pos = matrix.GetPosition();
+
+            HISMAABB* aabb = BatchLODGroup.GetAABBPtr(index);
+            var extents = aabb->Extents;
             
             for (var i = 0; i < PLANE_COUNT; i++)
             {
@@ -56,7 +59,7 @@ namespace BRGContainer.Runtime
                 // var distance = math.dot(normal, aabb.Center) + plane.distance;
                 // var radius = math.dot(aabb.Extents, math.abs(normal));
                 var distance = math.dot(normal, pos) + plane.distance;
-                var radius = math.dot(Extents, math.abs(normal));
+                var radius = math.dot(extents, math.abs(normal));
 
                 if (distance + radius <= 0)
                     return;

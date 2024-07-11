@@ -202,6 +202,11 @@ namespace BRGContainer.Runtime
         {
             BRGContainer.SetLOD(m_ContainerId, m_BatchLODGroupID, index, lod);
         }
+        
+        public void SetAABB(int index, HISMAABB aabb)
+        {
+            BRGContainer.SetAABB(m_ContainerId, m_BatchLODGroupID, index, aabb);
+        }
 
         public Tuple<int, bool> AddAliveInstance(ref LODGroupBatchHandle hanlde)
         {

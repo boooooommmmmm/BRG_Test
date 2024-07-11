@@ -153,6 +153,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
             }
                 
             m_LODGroupBatchHandles.SetInstanceActive(index, (uint)randomLOD, true);
+            m_LODGroupBatchHandles.SetAABB(index, new HISMAABB(new float3(-1,-1,-1), new float3(1,1,1)));
         }
 
         if (flushBuffer)

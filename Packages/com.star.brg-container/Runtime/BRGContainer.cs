@@ -386,6 +386,14 @@ namespace BRGContainer.Runtime
                 batchLODGroup.SetLOD(index, lod);
             }
         }
+        
+        internal static void SetAABB(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index, HISMAABB aabb)
+        {
+            if (GetBatchLODGroup(containerID, batchLODGroupID, out BatchLODGroup batchLODGroup))
+            {
+                batchLODGroup.SetAABB(index, aabb);
+            }
+        }
 
         internal static Tuple<int, bool>  AddActiveInstance(ContainerID containerID, BatchLODGroupID batchLODGroupID, ref LODGroupBatchHandle lodGroupBatchHandle)
         {

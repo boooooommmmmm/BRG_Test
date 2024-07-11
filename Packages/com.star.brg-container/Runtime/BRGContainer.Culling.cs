@@ -25,7 +25,7 @@ namespace BRGContainer.Runtime
         private const bool _forceJobFence = false; //default : false
         private const bool _useMainCameraCulling = true; //default : true
 
-        private static float3 commonExtents = new float3(2, 2, 2);
+        // private static float3 commonExtents = new float3(2, 2, 2);
         
         private unsafe JobHandle CullingParallel(BatchRendererGroup rendererGroup, BatchCullingContext cullingContext,
             BatchCullingOutput cullingOutput, IntPtr userContext)
@@ -86,7 +86,7 @@ namespace BRGContainer.Runtime
                 {
                     CullingPlanes = cullingPlanes,
                     BatchLODGroup = batchLODGroup,
-                    Extents = commonExtents, //@TODO: temp code, need HISMAABB
+                    // Extents = commonExtents, //@TODO: temp code, need HISMAABB
                     StatePtr = statePtr,
                     // DataOffset = maxInstancePerWindow * batchIndex,
                     DrawInstanceIndexData = drawInstanceIndexData,
