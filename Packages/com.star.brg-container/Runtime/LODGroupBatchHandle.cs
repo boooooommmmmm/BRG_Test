@@ -11,6 +11,9 @@ namespace BRGContainer.Runtime
     using Unity.Collections.LowLevel.Unsafe;
     using Unity.Mathematics;
     using UnityEngine.Rendering;
+    #if STAR_BRG_CONTAINER
+	using HISM;
+	#endif
 
     /// <summary>
     /// The handle of a batch.
@@ -207,10 +210,20 @@ namespace BRGContainer.Runtime
         {
             BRGContainer.SetAABB(m_ContainerId, m_BatchLODGroupID, index, aabb);
         }
-
-        public Tuple<int, bool> AddAliveInstance(ref LODGroupBatchHandle hanlde)
+        
+        public bool IsInstanceAvailable(int index, uint lod)
         {
-            return BRGContainer.AddActiveInstance(m_ContainerId, m_BatchLODGroupID, ref hanlde);
+	        return BRGContainer.IsAvailable(m_ContainerId, m_BatchLODGroupID, index, lod);
+        }
+        
+        public void SetInstanceAvailable(int index, uint lod, bool available)
+        {
+	        BRGContainer.SetAvailable(m_ContainerId, m_BatchLODGroupID, index, lod, available);
+        }
+
+        public Tuple<int, bool> AddAvailableInstance(ref LODGroupBatchHandle hanlde)
+        {
+            return BRGContainer.AddAvailableInstance(m_ContainerId, m_BatchLODGroupID, ref hanlde);
         }
 
         public bool IsLODDataInitialized(uint lod)

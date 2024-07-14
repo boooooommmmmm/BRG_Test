@@ -15,6 +15,9 @@ using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
+#if STAR_BRG_CONTAINER
+using HISM;
+#endif
 
 
 namespace BRGContainer.Runtime
@@ -394,8 +397,26 @@ namespace BRGContainer.Runtime
                 batchLODGroup.SetAABB(index, aabb);
             }
         }
+        
+        internal static bool IsAvailable(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index, uint lod)
+        {
+	        if (GetBatchLODGroup(containerID, batchLODGroupID, out BatchLODGroup batchLODGroup))
+	        {
+		        return batchLODGroup.IsAvailable(index);
+	        }
 
-        internal static Tuple<int, bool>  AddActiveInstance(ContainerID containerID, BatchLODGroupID batchLODGroupID, ref LODGroupBatchHandle lodGroupBatchHandle)
+	        return false;
+        }
+        
+        internal static void SetAvailable(ContainerID containerID, BatchLODGroupID batchLODGroupID, int index, uint lod, bool available)
+        {
+	        if (GetBatchLODGroup(containerID, batchLODGroupID, out BatchLODGroup batchLODGroup))
+	        {
+		        batchLODGroup.SetAvailable(index, lod, available);
+	        }
+        }
+
+        internal static Tuple<int, bool>  AddAvailableInstance(ContainerID containerID, BatchLODGroupID batchLODGroupID, ref LODGroupBatchHandle lodGroupBatchHandle)
         {
 	        bool batchHandleChanged = false;
             if (!m_Containers.TryGetValue(containerID, out BRGContainer container))
@@ -406,7 +427,7 @@ namespace BRGContainer.Runtime
             if (!container.m_LODGroups.TryGetValue(batchLODGroupID, out BatchLODGroup batchLODGroup))
 	            return new Tuple<int, bool>(-1 ,batchHandleChanged);
 
-            (int index, EGetNextActiveIndexInfo info) = batchLODGroup.GetNextActiveIndex();
+            (int index, EGetNextActiveIndexInfo info) = batchLODGroup.GetNextAvailableIndex();
 
             if (info == EGetNextActiveIndexInfo.None)
             {
@@ -421,7 +442,7 @@ namespace BRGContainer.Runtime
                 batchHandleChanged = container.ExtendInstanceCount(ref lodGroupBatchHandle, 1);
                 batchLODGroup = container.GetBatchLODGroup(lodGroupBatchHandle.m_BatchLODGroupID);
                 lodGroupBatchHandle.IncreaseInstanceCount();
-                (index, info) = batchLODGroup.GetNextActiveIndex();
+                (index, info) = batchLODGroup.GetNextAvailableIndex();
             }
             
             return new Tuple<int, bool>(index ,batchHandleChanged);;

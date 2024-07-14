@@ -126,7 +126,7 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
 
         for (int i = 1; i <= addCount; i++)
         {
-            Tuple<int, bool> addRes = m_LODGroupBatchHandles.AddAliveInstance(ref m_LODGroupBatchHandles);
+            Tuple<int, bool> addRes = m_LODGroupBatchHandles.AddAvailableInstance(ref m_LODGroupBatchHandles);
             int index = addRes.Item1;
             bool lodGroupBatchHandleChanged = addRes.Item2;
 
@@ -151,7 +151,8 @@ public class BRGContainerTest_AutoResize : MonoBehaviour
                 RendererDescription rendererDescription = new RendererDescription(ShadowCastingMode.On, true, false, 1, 0, MotionVectorGenerationMode.Camera);
                 m_LODGroupBatchHandles.RegisterLODData(in rendererDescription, (uint)randomLOD, mesh, materials);
             }
-                
+
+            m_LODGroupBatchHandles.SetInstanceAvailable(index, (uint)randomLOD, true);
             m_LODGroupBatchHandles.SetInstanceActive(index, (uint)randomLOD, true);
             m_LODGroupBatchHandles.SetAABB(index, new HISMAABB(new float3(-1,-1,-1), new float3(1,1,1)));
         }

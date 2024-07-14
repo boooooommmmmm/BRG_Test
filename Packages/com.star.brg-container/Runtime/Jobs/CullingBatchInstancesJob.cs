@@ -10,6 +10,9 @@ namespace BRGContainer.Runtime
     using Unity.Jobs;
     using Unity.Mathematics;
     using UnityEngine;
+    #if STAR_BRG_CONTAINER
+	using HISM;
+    #endif
 
     [StructLayout(LayoutKind.Sequential)]
     [BurstCompile(OptimizeFor = OptimizeFor.Performance, FloatMode = FloatMode.Fast, CompileSynchronously = true, FloatPrecision = FloatPrecision.Low, DisableSafetyChecks = true)]
@@ -39,8 +42,13 @@ namespace BRGContainer.Runtime
             // int aliveMaskPos = 4;
             // uint aliveMask = state & (1u << aliveMaskPos);
             // bool isAlive = aliveMask > 0u ? true : false;
+            bool isAvailable = BatchLODGroup.IsAvailable(index);
+            if (!isAvailable)
+            {
+                return;
+            }
+            
             bool isAlive = BatchLODGroup.IsActive(index);
-
             if (!isAlive)
             {
                 return;
